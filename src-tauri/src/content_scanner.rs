@@ -8,6 +8,7 @@ use walkdir::WalkDir;
 use crate::{
     library,
     models::{Album, Artist, Quality, Song},
+    utils::ToI64,
 };
 
 pub fn scan_for_new_content(dir: &str) {
@@ -45,25 +46,25 @@ fn get_metadata(file_path: &str) -> Song {
     };
 
     let album = Album {
+        id: None,
         name: get_str(tag.album_title()),
-        cover_path: String::from(""),
-        year: get(tag.year()) as u16,
-        tracks: get(tag.total_tracks()),
-        artist: artist.clone(),
+        cover_path: Some(String::from("")),
+        year: tag.year().to_i64(),
+        total_tracks: tag.total_tracks().to_i64(),
+        total_discs: tag.total_discs().to_i64(),
+        artist: Some(artist.clone()),
     };
 
     Song {
         name: get_str(tag.title()),
-        track: get(tag.track_number()),
-        duration_s: get(tag.duration()),
+        track: tag.track_number(),
+        duration_s: tag.duration(),
         quality: if file_path.ends_with(".flac") {
             Quality::Lossless
         } else {
             Quality::Lossy
         },
         genre: get_str(tag.genre()),
-        bitrate_kbps: 0.0,
-        sample_rate_khz: 0.0,
         artist,
         album,
     }
@@ -71,8 +72,4 @@ fn get_metadata(file_path: &str) -> Song {
 
 fn get_str(value: Option<&str>) -> String {
     value.unwrap_or("Unknown").to_string()
-}
-
-fn get<T: Default>(value: Option<T>) -> T {
-    value.unwrap_or_default()
 }
