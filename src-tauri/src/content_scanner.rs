@@ -1,27 +1,28 @@
-// List files in directory
-// If file not in database, get metadata and store it there
-//
-
 use audiotags::Tag;
 use walkdir::WalkDir;
 
 use crate::{
+    database::ConnectionWrapper,
     library,
     models::{Album, Artist, Quality, Song},
-    utils::ToI64,
+    utils::IntoOption,
 };
 
-pub fn scan_for_new_content(dir: &str) {
+// Scans a given directory and commits music metadata to database
+pub fn scan_for_new_content(dir: &str, db: &ConnectionWrapper) -> Result<(), sqlite::Error> {
     for entry in WalkDir::new(dir).into_iter() {
         if let Ok(entry) = entry {
             let path = entry.path().to_string_lossy();
-            if !is_audio(&path) || library::has_file(&path) {
+            if !is_audio(&path) || library::has_file(&path, db) {
                 continue;
             }
-            let song = get_metadata(&path);
+            let mut song = get_metadata(&path);
+            db.insert_full(&mut song)?;
             println!("{:?}", song);
         }
     }
+
+    Ok(())
 }
 
 fn is_audio(file_path: &str) -> bool {
@@ -40,22 +41,43 @@ fn is_audio(file_path: &str) -> bool {
 fn get_metadata(file_path: &str) -> Song {
     let tag = Tag::new().read_from_path(file_path).unwrap();
 
-    let artist = Artist {
-        id: None,
-        name: get_str(tag.artist()),
+    let artist_name = tag.artist();
+    let artist = if let Some(name) = artist_name {
+        Some(Artist {
+            id: None,
+            name: name.into(),
+        })
+    } else {
+        None
     };
 
-    let album = Album {
-        id: None,
-        name: get_str(tag.album_title()),
-        cover_path: Some(String::from("")),
-        year: tag.year().to_i64(),
-        total_tracks: tag.total_tracks().to_i64(),
-        total_discs: tag.total_discs().to_i64(),
-        artist: Some(artist.clone()),
+    let album_artist_name = tag.album_artist();
+    let album_artist = if let Some(name) = album_artist_name {
+        Some(Artist {
+            id: None,
+            name: name.into(),
+        })
+    } else {
+        artist.clone()
+    };
+
+    let album_name = tag.album_title();
+    let album = if let Some(name) = album_name {
+        Some(Album {
+            id: None,
+            name: name.into(),
+            cover_path: Some(String::from("")),
+            year: tag.year().into_option(),
+            total_tracks: tag.total_tracks().into_option(),
+            total_discs: tag.total_discs().into_option(),
+            artist: album_artist,
+        })
+    } else {
+        None
     };
 
     Song {
+        id: None,
         name: get_str(tag.title()),
         track: tag.track_number(),
         duration_s: tag.duration(),
@@ -64,9 +86,11 @@ fn get_metadata(file_path: &str) -> Song {
         } else {
             Quality::Lossy
         },
-        genre: get_str(tag.genre()),
+        genre: tag.genre().into_option(),
         artist,
         album,
+        disc: tag.disc_number(),
+        file_path: file_path.into(),
     }
 }
 

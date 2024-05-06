@@ -1,7 +1,24 @@
 use chrono::{DateTime, Utc};
 use sqlite::State;
 
-use crate::{database, utils};
+use crate::{
+    database,
+    utils::{self, option_as_slice, IntoOption},
+};
+
+fn err(message: &str) -> Result<(), sqlite::Error> {
+    Err(sqlite::Error {
+        code: None,
+        message: Some(message.to_string()),
+    })
+}
+
+fn ensure_valid(object: &impl Store) -> Result<(), sqlite::Error> {
+    if object.is_valid() {
+        return Ok(());
+    }
+    err("Object not valid")
+}
 
 pub trait Store {
     // Inserts the object into the database
@@ -12,12 +29,28 @@ pub trait Store {
     // Returns true if an "overlapping" data point is found in the database, fills in id field of
     // to the found id
     fn exists(&mut self, conn: &sqlite::Connection) -> Result<bool, sqlite::Error>;
+    fn is_valid(&self) -> bool;
 }
 
-#[derive(Debug, Clone)]
+pub trait StoreFull {
+    // Inserts the object and all contained objects into the db
+    // Fills in the id field similarly
+    fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error>;
+}
+
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum Quality {
     Lossless,
     Lossy,
+}
+
+impl From<i64> for Quality {
+    fn from(value: i64) -> Self {
+        match value {
+            0 => Quality::Lossless,
+            _ => Quality::Lossy,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -28,14 +61,13 @@ pub struct Artist {
 
 impl Store for Artist {
     fn insert(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
-        if self.name.len() == 0 {
-            return Err(sqlite::Error {
-                code: None,
-                message: Some("Cannot push an Artist with an empty name field".into()),
-            });
+        ensure_valid(self)?;
+
+        if self.exists(conn)? {
+            return Ok(());
         }
 
-        let query = "INSERT OR IGNORE INTO artist (name) VALUES (:name)";
+        let query = "INSERT INTO artist (name) VALUES (:name)";
         let mut statement = conn.prepare(query)?;
 
         let name = &self.name[..];
@@ -62,6 +94,16 @@ impl Store for Artist {
 
         Ok(false)
     }
+
+    fn is_valid(&self) -> bool {
+        self.name.len() > 0
+    }
+}
+
+impl StoreFull for Artist {
+    fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        self.insert(conn)
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -77,15 +119,14 @@ pub struct Album {
 
 impl Store for Album {
     fn insert(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
-        if self.name.len() == 0 {
-            return Err(sqlite::Error {
-                code: None,
-                message: Some("Cannot push an Album with an empty name field".into()),
-            });
+        ensure_valid(self)?;
+
+        if self.exists(conn)? {
+            return Ok(());
         }
 
         let query = "
-        INSERT OR IGNORE INTO album 
+        INSERT INTO album 
         (name, artist_id, cover_path, year, total_tracks, total_discs) 
         VALUES 
         (:name, :artist_id, :cover_path, :year, :total_tracks, :total_discs)
@@ -112,19 +153,28 @@ impl Store for Album {
     }
 
     fn exists(&mut self, conn: &sqlite::Connection) -> Result<bool, sqlite::Error> {
+        ensure_valid(self)?;
+
+        let artist_id: Option<i64> = if let Some(artist) = &self.artist {
+            if let Some(artist_id) = artist.id {
+                Some(artist_id)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
         // Bit messy but searches with the artist only if the album has one
         let query = format!(
             "SELECT 
-            al.album_id FROM album AS al
+            album_id FROM album
 
-            LEFT JOIN artist AS ar
-            ON al.artist_id = ar.artist_id
-
-            WHERE al.name = :name 
+            WHERE name = :name 
             {}
             LIMIT 1",
-            if self.artist.is_some() {
-                "AND ar.name = :artist_name"
+            if artist_id.is_some() {
+                "AND artist_id = :artist_id"
             } else {
                 ""
             }
@@ -134,9 +184,8 @@ impl Store for Album {
 
         statement.bind((":name", &self.name[..]))?;
 
-        // Similarly we only bind the value if the artist exists
-        if let Some(artist) = &self.artist {
-            statement.bind((":artist_name", &artist.name[..]))?;
+        if let Some(id) = artist_id {
+            statement.bind((":artist_id", id))?;
         }
 
         if let Ok(State::Row) = statement.next() {
@@ -148,17 +197,117 @@ impl Store for Album {
 
         Ok(false)
     }
+
+    fn is_valid(&self) -> bool {
+        self.name.len() > 0
+    }
+}
+
+impl StoreFull for Album {
+    fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        if let Some(artist) = &mut self.artist {
+            artist.insert_full(conn)?;
+        }
+        self.insert(conn)
+    }
 }
 
 #[derive(Debug, Clone)]
 pub struct Song {
+    pub id: Option<i64>,
     pub name: String,
+    pub file_path: String,
     pub track: Option<u16>,
+    pub disc: Option<u16>,
     pub duration_s: Option<f64>,
     pub quality: Quality,
-    pub genre: String,
-    pub artist: Artist,
-    pub album: Album,
+    pub genre: Option<String>,
+    pub artist: Option<Artist>,
+    pub album: Option<Album>,
+}
+
+impl Store for Song {
+    fn insert(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        ensure_valid(self)?;
+
+        if self.exists(conn)? {
+            return Ok(());
+        }
+
+        let query = "INSERT INTO song
+        (name, file_path, track, disc, duration_s, quality, genre, artist_id, album_id)
+        VALUES
+        (:name, :file_path, :track, :disc, :duration_s, :quality, :genre, :artist_id, :album_id)
+        ";
+
+        let mut statement = conn.prepare(query)?;
+
+        let artist_id = if let Some(artist) = &self.artist {
+            artist.id
+        } else {
+            None
+        };
+
+        let album_id = if let Some(album) = &self.album {
+            album.id
+        } else {
+            None
+        };
+
+        statement.bind((":name", &self.name[..]))?;
+        statement.bind((":file_path", &self.file_path[..]))?;
+        statement.bind((":track", self.track.into_option()))?;
+        statement.bind((":disc", self.disc.into_option()))?;
+        statement.bind((":duration_s", self.duration_s))?;
+        statement.bind((":quality", self.quality as i64))?;
+        statement.bind((":genre", option_as_slice(&self.genre)))?;
+        statement.bind((":artist_id", artist_id))?;
+        statement.bind((":album_id", album_id))?;
+
+        database::execute_statement(&mut statement)?;
+        self.id = Some(database::last_id(conn)?);
+        Ok(())
+    }
+
+    fn exists(&mut self, conn: &sqlite::Connection) -> Result<bool, sqlite::Error> {
+        let query = "SELECT 
+        s.song_id FROM song AS s
+
+        WHERE s.file_path = :file_path
+        LIMIT 1
+        ";
+
+        let mut statement = conn.prepare(query)?;
+
+        statement.bind((":file_path", &self.file_path[..]))?;
+
+        if let Ok(State::Row) = statement.next() {
+            let song_id = statement.read::<i64, _>(0)?;
+            // Assing the found id to the mutable ref
+            self.id = Some(song_id);
+            return Ok(true);
+        }
+
+        Ok(false)
+    }
+
+    fn is_valid(&self) -> bool {
+        self.name.len() > 0 && self.file_path.len() > 0
+    }
+}
+
+impl StoreFull for Song {
+    fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        if let Some(album) = &mut self.album {
+            album.insert_full(conn)?;
+        }
+
+        if let Some(artist) = &mut self.artist {
+            artist.insert_full(conn)?;
+        }
+
+        self.insert(conn)
+    }
 }
 
 #[derive(Debug, Clone)]
