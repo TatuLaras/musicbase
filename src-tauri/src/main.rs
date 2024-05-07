@@ -118,5 +118,6 @@ fn main() {
         conn: sqlite::open("test.db").expect("Connection failed"),
     };
     db.create_schema();
-    scan_for_new_content("/home/tatu/Music/", &db).expect("Scanning");
+    scan_for_new_content("/run/media/tatu/Holvi/Merirosvoilu/Musiikki/Artists/", &db)
+        .expect("Scanning");
 }
