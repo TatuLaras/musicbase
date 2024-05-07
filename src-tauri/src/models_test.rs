@@ -3,8 +3,8 @@ use core::panic;
 use once_cell::sync::Lazy;
 
 use crate::{
-    database::{self, ConnectionWrapper},
-    models::{Album, Artist, Quality, Song},
+    database::{self, asc, desc, ConnectionWrapper, Order},
+    models::{Album, Artist, Playlist, PlaylistSong, Quality, Song},
 };
 
 static SAMPLE_ARTISTS: Lazy<[Artist; 4]> = Lazy::new(|| {
@@ -69,7 +69,7 @@ static SAMPLE_SONGS: Lazy<[Song; 3]> = Lazy::new(|| {
             duration_s: Some(220.0),
             quality: Quality::Lossless,
             genre: Some("Rock".into()),
-            artist: Some(SAMPLE_ARTISTS[0].clone()),
+            artist: Some(SAMPLE_ARTISTS[1].clone()),
             album: Some(SAMPLE_ALBUMS[0].clone()),
             file_path: "/path/to/song/file".into(),
             disc: Some(1),
@@ -101,6 +101,35 @@ static SAMPLE_SONGS: Lazy<[Song; 3]> = Lazy::new(|| {
     ]
 });
 
+static SAMPLE_PLAYLISTS: Lazy<[Playlist; 3]> = Lazy::new(|| {
+    [
+        Playlist {
+            id: None,
+            name: "Alternative rock".into(),
+            desc: "Rock that is alternative".into(),
+            cover_path: Some("/path/to/cover".into()),
+            created: None,
+            tags: vec!["chill".into(), "summer".into()],
+        },
+        Playlist {
+            id: None,
+            name: "Flipping rocking tunes".into(),
+            desc: "".into(),
+            cover_path: None,
+            created: None,
+            tags: Vec::new(),
+        },
+        Playlist {
+            id: None,
+            name: "Bangers".into(),
+            desc: "Yipii".into(),
+            cover_path: None,
+            created: None,
+            tags: Vec::new(),
+        },
+    ]
+});
+
 fn get_mock_db() -> ConnectionWrapper {
     let db = ConnectionWrapper {
         conn: sqlite::open(":memory:").expect("Connection failed"),
@@ -116,7 +145,9 @@ fn insert_and_retrieve_artist() {
     for mut artist in SAMPLE_ARTISTS.clone().into_iter() {
         db.insert(&mut artist).expect("Insert");
     }
-    let db_artists = db.get_all_artists().expect("Retrieval");
+    let db_artists = db
+        .get_all::<Artist>(Order::Asc("artist_id".to_string()))
+        .expect("Retrieval");
 
     for (i, db_artist) in db_artists.clone().into_iter().enumerate() {
         assert_eq!(SAMPLE_ARTISTS[i].name, db_artists[i].name);
@@ -141,6 +172,20 @@ fn last_insert_row_id_artist() {
 
     let last_id = database::last_id(&db.conn).expect("Last ID retrieval");
     assert_eq!(last_id as usize, SAMPLE_ARTISTS.len());
+}
+
+#[test]
+fn last_insert_row_id_playlist() {
+    let db = get_mock_db();
+    let mut counter = 0;
+    for mut playlist in SAMPLE_PLAYLISTS.clone().into_iter() {
+        counter += 1;
+        db.insert(&mut playlist).expect("Insert");
+        assert_eq!(playlist.id.unwrap(), counter);
+    }
+
+    let last_id = database::last_id(&db.conn).expect("Last ID retrieval");
+    assert_eq!(last_id as usize, SAMPLE_PLAYLISTS.len());
 }
 
 #[test]
@@ -257,7 +302,7 @@ fn insert_and_retrieve_album() {
         }
     }
 
-    let db_albums = db.get_all_albums().expect("Retrieval");
+    let db_albums = db.get_all::<Album>(Order::Default).expect("Retrieval");
 
     for (i, db_album) in db_albums.clone().into_iter().enumerate() {
         println!("{:?}", db_album);
@@ -333,7 +378,7 @@ fn insert_and_retrieve_song() {
         }
     }
 
-    let db_songs = db.get_all_songs().expect("Retrieval");
+    let db_songs = db.get_all::<Song>(Order::Default).expect("Retrieval");
 
     // The comparing of nested fields gets pretty messy... this is just a test function tho
     // so no worries
@@ -384,7 +429,7 @@ fn insert_full_song() {
         }
     }
 
-    let db_songs = db.get_all_songs().expect("Retrieval");
+    let db_songs = db.get_all::<Song>(Order::Default).expect("Retrieval");
 
     for (i, sample_song) in SAMPLE_SONGS.clone().into_iter().enumerate() {
         let db_song = &db_songs[i];
@@ -496,4 +541,154 @@ fn double_insert_id_songs() {
     assert!(test_song.id.is_none());
     db.insert_full(&mut test_song).expect("Second insert");
     assert_eq!(test_song.id, Some(2));
+}
+
+#[test]
+fn sorting() {
+    let db = get_mock_db();
+    let mut artist_names: Vec<String> = Vec::new();
+
+    for mut song in SAMPLE_SONGS.clone().into_iter() {
+        db.insert_full(&mut song).expect("Song insert");
+    }
+
+    for mut artist in SAMPLE_ARTISTS.clone().into_iter() {
+        db.insert_full(&mut artist).expect("Artist insert");
+        artist_names.push(artist.name);
+    }
+
+    for mut album in SAMPLE_ALBUMS.clone().into_iter() {
+        db.insert_full(&mut album).expect("Album insert");
+    }
+
+    // Default orders by artist_id ascending
+    let db_songs_default = db.get_all::<Song>(Order::Default).unwrap();
+    let db_artist_name = db.get_all::<Artist>(desc("artist.name")).unwrap();
+    let db_album_artist_id = db.get_all::<Album>(asc("album.artist_id")).unwrap();
+    let db_artist_default = db.get_all::<Artist>(Order::Default).unwrap();
+    let db_album_default = db.get_all::<Album>(Order::Default).unwrap();
+
+    let mut prev = 0;
+    for song in &db_songs_default {
+        if let Some(id) = song.id {
+            assert!(id > prev);
+            prev = id;
+        } else {
+            panic!("No ID");
+        }
+    }
+
+    artist_names.sort_by(|a, b| a.to_lowercase().cmp(&b.to_lowercase()));
+    artist_names.reverse();
+
+    for (i, artist) in db_artist_name.clone().into_iter().enumerate() {
+        assert_eq!(artist_names[i], artist.name);
+    }
+
+    let mut prev = 0;
+    for album in &db_album_artist_id {
+        if let Some(artist) = &album.artist {
+            if let Some(id) = artist.id {
+                assert!(id > prev);
+                prev = id;
+            } else {
+                panic!("No ID");
+            }
+        }
+    }
+
+    let mut prev = 0;
+    for artist in &db_artist_default {
+        if let Some(id) = artist.id {
+            assert!(id > prev);
+            prev = id;
+        } else {
+            panic!("No ID");
+        }
+    }
+
+    let mut prev = 0;
+    for album in &db_album_default {
+        if let Some(id) = album.id {
+            assert!(id > prev);
+            prev = id;
+        } else {
+            panic!("No ID");
+        }
+    }
+}
+
+#[test]
+fn insert_and_retrieve_playlist() {
+    let db = get_mock_db();
+
+    let mut counter = 0;
+    for mut playlist in SAMPLE_PLAYLISTS.clone().into_iter() {
+        for _ in 0..2 {
+            counter += 1;
+            db.insert(&mut playlist).unwrap();
+            assert_eq!(playlist.id.unwrap(), counter);
+        }
+    }
+
+    let db_playlists = db.get_all::<Playlist>(Order::Default).unwrap();
+
+    for (i, sample_playlist) in SAMPLE_PLAYLISTS.clone().into_iter().enumerate() {
+        let base = i * 2;
+
+        for j in 0..2 {
+            let index = base + j;
+            let db_playlist = &db_playlists[index];
+            println!("{:?}", db_playlist);
+            assert_eq!(db_playlist.name, sample_playlist.name);
+            assert_eq!(db_playlist.desc, sample_playlist.desc);
+            assert_eq!(db_playlist.cover_path, sample_playlist.cover_path);
+            assert!(db_playlist.created.clone().unwrap().len() > 0);
+            assert_eq!(db_playlist.tags, sample_playlist.tags);
+            assert!(db_playlist.id.unwrap() > 0);
+        }
+    }
+}
+
+#[test]
+fn playlist_song_exists() {
+    let db = get_mock_db();
+    let mut counter = 0;
+    for mut playlist in SAMPLE_PLAYLISTS.clone().into_iter() {
+        counter += 1;
+        db.insert(&mut playlist).expect("Insert");
+        assert_eq!(counter, playlist.id.unwrap());
+        for mut song in SAMPLE_SONGS.clone().into_iter() {
+            db.insert(&mut song).unwrap();
+
+            let mut playlist_song = PlaylistSong {
+                id: None,
+                song_id: song.id.unwrap(),
+                playlist_id: playlist.id.unwrap(),
+            };
+
+            db.insert(&mut playlist_song).unwrap();
+            playlist_song.id.unwrap();
+
+            let mut playlist_song = PlaylistSong {
+                id: None,
+                song_id: playlist_song.song_id,
+                playlist_id: playlist_song.playlist_id,
+            };
+
+            assert!(db.exists(&mut playlist_song).expect("Exists check"));
+            playlist_song.id.unwrap();
+        }
+    }
+
+    assert!(!db
+        .exists(&mut Playlist {
+            id: None,
+            name: "Does not exist".into(),
+            desc: "Does not exist".into(),
+            cover_path: None,
+            created: None,
+            tags: Vec::new(),
+        })
+        .expect("Exists check"));
 }

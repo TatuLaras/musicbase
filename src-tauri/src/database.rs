@@ -1,18 +1,42 @@
 use sqlite::{Connection, State};
 
-use crate::{
-    models::{Album, Artist, Song, Store, StoreFull},
-    utils::option_cast,
-};
+use crate::models::{Store, StoreFull};
 
 pub struct ConnectionWrapper {
     pub conn: Connection,
 }
 
-pub struct User {
-    pub name: String,
-    pub age: u8,
+pub enum Order {
+    Asc(String),
+    Desc(String),
+    Default,
+    None,
 }
+
+pub fn asc(field: &str) -> Order {
+    Order::Asc(field.to_string())
+}
+
+pub fn desc(field: &str) -> Order {
+    Order::Desc(field.to_string())
+}
+
+pub trait AsQuery {
+    fn as_query(&self, default: Order) -> String;
+}
+
+impl AsQuery for Order {
+    fn as_query(&self, default: Order) -> String {
+        match self {
+            Order::Asc(field) => format!("ORDER BY {} ASC", field),
+            Order::Desc(field) => format!("ORDER BY {} DESC", field),
+            Order::None => "".to_string(),
+            Order::Default => default.as_query(Order::None),
+        }
+    }
+}
+
+//  TODO: search functions to fetch metadata conveniently
 
 impl ConnectionWrapper {
     pub fn create_schema(&self) {
@@ -45,7 +69,24 @@ impl ConnectionWrapper {
             artist_id INTEGER,
             album_id INTEGER
         );
+
+        CREATE TABLE playlist (
+            playlist_id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            desc TEXT NOT NULL,
+            cover_path TEXT,
+            created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            tags TEXT NOT NULL
+        );
+
+        CREATE TABLE playlist_song (
+            playlist_song_id INTEGER PRIMARY KEY,
+            song_id INTEGER,
+            playlist_id INTEGER,
+            added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
         ";
+
         self.conn.execute(query).unwrap();
     }
 
@@ -61,141 +102,8 @@ impl ConnectionWrapper {
         item.exists(&self.conn)
     }
 
-    pub fn get_all_artists(&self) -> Result<Vec<Artist>, sqlite::Error> {
-        let query = "SELECT artist_id, name FROM artist ORDER BY artist_id ASC";
-        let mut artists: Vec<Artist> = Vec::new();
-
-        let mut statement = self.conn.prepare(query)?;
-
-        while let Ok(State::Row) = statement.next() {
-            let artist = Artist {
-                id: Some(statement.read::<i64, _>("artist_id")?),
-                name: statement.read::<String, _>("name")?,
-            };
-            artists.push(artist);
-        }
-        Ok(artists)
-    }
-
-    pub fn get_all_albums(&self) -> Result<Vec<Album>, sqlite::Error> {
-        let query = "SELECT
-        al.album_id, al.name, al.artist_id, al.cover_path,
-        al.year, al.total_tracks, al.total_discs, ar.name AS artist_name
-        FROM album AS al
-        LEFT JOIN artist AS ar
-        ON al.artist_id = ar.artist_id
-        ORDER BY album_id ASC
-";
-
-        let mut albums: Vec<Album> = Vec::new();
-
-        let mut statement = self.conn.prepare(query)?;
-
-        while let Ok(State::Row) = statement.next() {
-            let artist_id = statement.read::<Option<i64>, _>("artist_id")?;
-            let artist_name = statement.read::<Option<String>, _>("artist_name")?;
-
-            let album = Album {
-                id: Some(statement.read::<i64, _>("album_id")?),
-                name: statement.read::<String, _>("name")?,
-                artist: if artist_id.is_some() {
-                    Some(Artist {
-                        id: artist_id,
-                        name: artist_name.unwrap_or("".to_string()),
-                    })
-                } else {
-                    None
-                },
-                cover_path: statement.read::<Option<String>, _>("cover_path")?,
-                year: statement.read::<Option<i64>, _>("year")?,
-                total_tracks: statement.read::<Option<i64>, _>("total_tracks")?,
-                total_discs: statement.read::<Option<i64>, _>("total_discs")?,
-            };
-            albums.push(album);
-        }
-        Ok(albums)
-    }
-
-    pub fn get_all_songs(&self) -> Result<Vec<Song>, sqlite::Error> {
-        let query = "SELECT
-
-        s.song_id, s.name, s.file_path, s.track, s.disc, 
-        s.duration_s, s.quality, s.genre, s.artist_id, s.album_id,
-
-        ar.name AS artist_name,
-
-        al.name AS album_name, al.artist_id AS album_artist_id,
-        al.cover_path, al.year, al.total_tracks, al.total_discs,
-
-        alar.name AS album_artist_name
-
-        FROM song AS s
-        
-        LEFT JOIN artist AS ar
-        ON ar.artist_id = s.artist_id
-        
-        LEFT JOIN album AS al
-        ON al.album_id = s.album_id
-
-        LEFT JOIN artist AS alar
-        ON alar.artist_id = al.artist_id
-
-        ORDER BY s.song_id ASC
-        ";
-
-        let mut songs: Vec<Song> = Vec::new();
-
-        let mut statement = self.conn.prepare(query)?;
-
-        while let Ok(State::Row) = statement.next() {
-            let artist_id = statement.read::<Option<i64>, _>("artist_id")?;
-            let artist_name = statement.read::<Option<String>, _>("artist_name")?;
-            let album_id = statement.read::<Option<i64>, _>("album_id")?;
-            let album_name = statement.read::<Option<String>, _>("album_name")?;
-            let album_artist_id = statement.read::<Option<i64>, _>("album_artist_id")?;
-            let album_artist_name = statement.read::<Option<String>, _>("album_artist_name")?;
-
-            let song = Song {
-                id: Some(statement.read::<i64, _>("song_id")?),
-                name: statement.read::<String, _>("name")?,
-                file_path: statement.read::<String, _>("file_path")?,
-                track: option_cast::<i64, u16>(statement.read::<Option<i64>, _>("track")?),
-                disc: option_cast::<i64, u16>(statement.read::<Option<i64>, _>("disc")?),
-                duration_s: statement.read::<Option<f64>, _>("duration_s")?,
-                quality: statement.read::<i64, _>("quality")?.into(),
-                genre: statement.read::<Option<String>, _>("genre")?,
-                artist: if artist_id.is_some() && artist_name.is_some() {
-                    Some(Artist {
-                        id: artist_id,
-                        name: artist_name.unwrap_or("".into()),
-                    })
-                } else {
-                    None
-                },
-                album: if album_id.is_some() && album_name.is_some() {
-                    Some(Album {
-                        id: album_id,
-                        name: album_name.unwrap_or("".into()),
-                        artist: if album_artist_id.is_some() && album_artist_name.is_some() {
-                            Some(Artist {
-                                id: album_artist_id,
-                                name: album_artist_name.unwrap_or("".into()),
-                            })
-                        } else {
-                            None
-                        },
-                        cover_path: statement.read::<Option<String>, _>("cover_path")?,
-                        year: statement.read::<Option<i64>, _>("year")?,
-                        total_tracks: statement.read::<Option<i64>, _>("total_tracks")?,
-                        total_discs: statement.read::<Option<i64>, _>("total_discs")?,
-                    })
-                } else {
-                    None
-                },
-            };
-            songs.push(song);
-        }
-        Ok(songs)
+    pub fn get_all<T: Store>(&self, order: Order) -> Result<Vec<T>, sqlite::Error> {
+        T::get_all(&self.conn, order)
     }
 }
 
