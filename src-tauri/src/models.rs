@@ -1,7 +1,8 @@
 use sqlite::State;
 
 use crate::{
-    database::{self, asc, AsQuery, Order},
+    database,
+    param::{asc, AsQuery, Condition, Order},
     utils::{self, option_as_slice, option_cast, IntoOption},
 };
 
@@ -46,6 +47,31 @@ pub trait Store {
     {
         Ok(Vec::new())
     }
+
+    // Takes a condition and returns all objects of the type that match that condition
+    fn get_by(
+        _conn: &sqlite::Connection,
+        _condition: Condition,
+        _order: Order,
+    ) -> Result<Vec<Self>, sqlite::Error>
+    where
+        Self: Sized,
+    {
+        Ok(Vec::new())
+    }
+
+    // Somewhat of an implementation detail, should not be used externally (expects a specific set
+    // of fields to be there in the query). This exists to avoid code repetition.
+    // Still associated with this trait due to it being the most conventient way to group
+    // this functionality at the moment.
+    fn __get_by_query(_conn: &sqlite::Connection, _query: &str) -> Result<Vec<Self>, sqlite::Error>
+    where
+        Self: Sized,
+    {
+        Ok(Vec::new())
+    }
+
+    //  TODO: exists_by method, which works similarly to get_by but only returns if a row exists
 }
 
 pub trait StoreFull {
@@ -69,7 +95,7 @@ impl From<i64> for Quality {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Artist {
     pub id: Option<i64>,
     pub name: String,
@@ -120,9 +146,32 @@ impl Store for Artist {
         Self: Sized,
     {
         let query = format!(
-            "SELECT artist_id, name FROM artist {}",
+            "SELECT artist_id, name FROM artist ORDER BY {}",
             order.as_query(asc("artist_id"))
         );
+        Self::__get_by_query(conn, &query)
+    }
+
+    fn get_by(
+        conn: &sqlite::Connection,
+        condition: Condition,
+        order: Order,
+    ) -> Result<Vec<Self>, sqlite::Error>
+    where
+        Self: Sized,
+    {
+        let query = format!(
+            "SELECT artist_id, name FROM artist WHERE {} ORDER BY {}",
+            condition.as_query(Condition::None),
+            order.as_query(asc("artist_id")),
+        );
+        Self::__get_by_query(conn, &query)
+    }
+
+    fn __get_by_query(conn: &sqlite::Connection, query: &str) -> Result<Vec<Self>, sqlite::Error>
+    where
+        Self: Sized,
+    {
         let mut artists: Vec<Artist> = Vec::new();
 
         let mut statement = conn.prepare(query)?;
@@ -144,7 +193,7 @@ impl StoreFull for Artist {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Album {
     pub id: Option<i64>,
     pub name: String,
@@ -254,11 +303,45 @@ impl Store for Album {
             LEFT JOIN artist AS ar
             ON album.artist_id = ar.artist_id
 
-            {}
+            ORDER BY {}
             ",
             order.as_query(asc("album.album_id"))
         );
+        Self::__get_by_query(conn, &query)
+    }
 
+    fn get_by(
+        conn: &sqlite::Connection,
+        condition: Condition,
+        order: Order,
+    ) -> Result<Vec<Self>, sqlite::Error>
+    where
+        Self: Sized,
+    {
+        let query = format!(
+            "SELECT
+
+            album.album_id, album.name, album.artist_id, album.cover_path,
+            album.year, album.total_tracks, album.total_discs, ar.name AS artist_name
+
+            FROM album
+
+            LEFT JOIN artist AS ar
+            ON album.artist_id = ar.artist_id
+
+            WHERE {}
+            ORDER BY {}
+            ",
+            condition.as_query(Condition::None),
+            order.as_query(asc("album.album_id")),
+        );
+        Self::__get_by_query(conn, &query)
+    }
+
+    fn __get_by_query(conn: &sqlite::Connection, query: &str) -> Result<Vec<Self>, sqlite::Error>
+    where
+        Self: Sized,
+    {
         let mut albums: Vec<Album> = Vec::new();
 
         let mut statement = conn.prepare(query)?;
@@ -298,7 +381,7 @@ impl StoreFull for Album {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Song {
     pub id: Option<i64>,
     pub name: String,
@@ -408,11 +491,57 @@ impl Store for Song {
             LEFT JOIN artist AS album_artist
             ON album_artist.artist_id = album.artist_id
 
-            {}
+            ORDER BY {}
             ",
             order.as_query(asc("song.song_id"))
         );
+        Self::__get_by_query(conn, &query)
+    }
 
+    fn get_by(
+        conn: &sqlite::Connection,
+        condition: Condition,
+        order: Order,
+    ) -> Result<Vec<Self>, sqlite::Error>
+    where
+        Self: Sized,
+    {
+        let query = format!(
+            "SELECT
+            song.song_id, song.name, song.file_path, song.track, song.disc, 
+            song.duration_s, song.quality, song.genre, song.artist_id, song.album_id,
+
+            artist.name AS artist_name,
+
+            album.name AS album_name, album.artist_id AS album_artist_id,
+            album.cover_path, album.year, album.total_tracks, album.total_discs,
+
+            album_artist.name AS album_artist_name
+
+            FROM song
+            
+            LEFT JOIN artist
+            ON artist.artist_id = song.artist_id
+            
+            LEFT JOIN album
+            ON album.album_id = song.album_id
+
+            LEFT JOIN artist AS album_artist
+            ON album_artist.artist_id = album.artist_id
+
+            WHERE {}
+            ORDER BY {}
+            ",
+            condition.as_query(Condition::None),
+            order.as_query(asc("song.song_id")),
+        );
+        Self::__get_by_query(conn, &query)
+    }
+
+    fn __get_by_query(conn: &sqlite::Connection, query: &str) -> Result<Vec<Self>, sqlite::Error>
+    where
+        Self: Sized,
+    {
         let mut songs: Vec<Song> = Vec::new();
 
         let mut statement = conn.prepare(query)?;
@@ -483,7 +612,7 @@ impl StoreFull for Song {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Playlist {
     pub id: Option<i64>,
     pub name: String,
@@ -538,11 +667,39 @@ impl Store for Playlist {
 
             playlist_id, name, desc, cover_path, created, tags
             FROM playlist
-            {}
+            ORDER BY {}
             ",
             order.as_query(asc("playlist_id"))
         );
+        Self::__get_by_query(conn, &query)
+    }
 
+    fn get_by(
+        conn: &sqlite::Connection,
+        condition: Condition,
+        order: Order,
+    ) -> Result<Vec<Self>, sqlite::Error>
+    where
+        Self: Sized,
+    {
+        let query = format!(
+            "SELECT
+
+            playlist_id, name, desc, cover_path, created, tags
+            FROM playlist
+            WHERE {}
+            ORDER BY {}
+            ",
+            condition.as_query(Condition::None),
+            order.as_query(asc("playlist_id")),
+        );
+        Self::__get_by_query(conn, &query)
+    }
+
+    fn __get_by_query(conn: &sqlite::Connection, query: &str) -> Result<Vec<Self>, sqlite::Error>
+    where
+        Self: Sized,
+    {
         let mut playlists: Vec<Playlist> = Vec::new();
 
         let mut statement = conn.prepare(query)?;
@@ -625,10 +782,4 @@ impl Store for PlaylistSong {
     fn is_valid(&self) -> bool {
         self.song_id > 0 && self.playlist_id > 0
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum Setting {
-    Text(String),
-    Toggle(bool),
 }

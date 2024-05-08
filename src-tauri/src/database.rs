@@ -1,42 +1,13 @@
 use sqlite::{Connection, State};
 
-use crate::models::{Store, StoreFull};
+use crate::{
+    models::{Store, StoreFull},
+    param::{Condition, Order},
+};
 
 pub struct ConnectionWrapper {
     pub conn: Connection,
 }
-
-pub enum Order {
-    Asc(String),
-    Desc(String),
-    Default,
-    None,
-}
-
-pub fn asc(field: &str) -> Order {
-    Order::Asc(field.to_string())
-}
-
-pub fn desc(field: &str) -> Order {
-    Order::Desc(field.to_string())
-}
-
-pub trait AsQuery {
-    fn as_query(&self, default: Order) -> String;
-}
-
-impl AsQuery for Order {
-    fn as_query(&self, default: Order) -> String {
-        match self {
-            Order::Asc(field) => format!("ORDER BY {} ASC", field),
-            Order::Desc(field) => format!("ORDER BY {} DESC", field),
-            Order::None => "".to_string(),
-            Order::Default => default.as_query(Order::None),
-        }
-    }
-}
-
-//  TODO: search functions to fetch metadata conveniently
 
 impl ConnectionWrapper {
     pub fn create_schema(&self) {
@@ -105,20 +76,18 @@ impl ConnectionWrapper {
     pub fn get_all<T: Store>(&self, order: Order) -> Result<Vec<T>, sqlite::Error> {
         T::get_all(&self.conn, order)
     }
-}
 
-pub fn execute_statement(statement: &mut sqlite::Statement) -> Result<(), sqlite::Error> {
-    loop {
-        let result = statement.next();
-        if let Ok(res) = result {
-            if res == State::Done {
-                break;
-            }
-        } else if let Err(err) = result {
-            return Err(err);
-        }
+    pub fn get_by<T: Store>(
+        &self,
+        condition: Condition,
+        order: Order,
+    ) -> Result<Vec<T>, sqlite::Error> {
+        T::get_by(&self.conn, condition, order)
     }
-    Ok(())
+
+    pub fn last_id(&self) -> Result<i64, sqlite::Error> {
+        last_id(&self.conn)
+    }
 }
 
 pub fn last_id(conn: &sqlite::Connection) -> Result<i64, sqlite::Error> {
@@ -133,4 +102,18 @@ pub fn last_id(conn: &sqlite::Connection) -> Result<i64, sqlite::Error> {
         code: None,
         message: Some("Error in retrieving last insert row id".into()),
     })
+}
+
+pub fn execute_statement(statement: &mut sqlite::Statement) -> Result<(), sqlite::Error> {
+    loop {
+        let result = statement.next();
+        if let Ok(res) = result {
+            if res == State::Done {
+                break;
+            }
+        } else if let Err(err) = result {
+            return Err(err);
+        }
+    }
+    Ok(())
 }

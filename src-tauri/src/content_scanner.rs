@@ -18,7 +18,6 @@ pub fn scan_for_new_content(dir: &str, db: &ConnectionWrapper) -> Result<(), sql
             }
             let mut song = get_metadata(&path);
             db.insert_full(&mut song)?;
-            println!("{:?}", song);
         }
     }
 
