@@ -1,10 +1,25 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App";
-import "./styles.css";
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import { IconoirProvider } from 'iconoir-react';
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
+import './styles/normalize.css';
+import './styles/left_panel.css';
+import './styles/global.css';
+import './styles/Poppins.css';
+import './styles/panels.css';
+import './styles/widgets.css';
+import './styles/grid.css';
+import './styles/loading.css';
+
+ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
+    <React.StrictMode>
+        <IconoirProvider
+            iconProps={{
+                strokeWidth: 2,
+            }}
+        >
+            <App />
+        </IconoirProvider>
+    </React.StrictMode>,
 );

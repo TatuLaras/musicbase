@@ -1,0 +1,29 @@
+.bullet-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0 1em;
+    gap: 0.5em;
+}
+
+.bullet-buttons button {
+    background: none;
+    border: none;
+    padding: 0.4em 0.8em;
+    border-radius: 3em;
+    color: var(--color-accent-primary);
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+        background 0.1s ease-out,
+        color 0.1s ease-out;
+    background-color: var(--color-bg-light-1);
+}
+
+.bullet-buttons button:hover {
+    background-color: var(--color-bg-light-2);
+}
+.bullet-buttons button.selected {
+    background-color: var(--color-accent-primary);
+    color: var(--color-bg-light);
+    /* color: black; */
+}

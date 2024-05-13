@@ -1,0 +1,15 @@
+.panel-title {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    font-size: 1.1em;
+    padding: 1.2rem;
+}
+
+.panel-title .icon {
+    padding-right: 1em;
+}
+
+.panel-title .text {
+    padding-bottom: 3px;
+}

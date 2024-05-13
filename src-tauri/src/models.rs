@@ -1,3 +1,4 @@
+use serde::Serialize;
 use sqlite::State;
 
 use crate::{
@@ -6,7 +7,9 @@ use crate::{
     utils::{self, option_as_slice, option_cast, IntoOption},
 };
 
-fn err(message: &str) -> Result<(), sqlite::Error> {
+// Helpers
+
+pub fn err(message: &str) -> Result<(), sqlite::Error> {
     Err(sqlite::Error {
         code: None,
         message: Some(message.to_string()),
@@ -76,11 +79,11 @@ pub trait Store {
 
 pub trait StoreFull {
     // Inserts the object and all contained objects into the db
-    // Fills in the id field similarly
+    // Fills in the id field similarly to insert of the trait Store
     fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error>;
 }
 
-#[derive(Debug, Clone, PartialEq, Copy)]
+#[derive(Debug, Clone, PartialEq, Copy, Serialize)]
 pub enum Quality {
     Lossless,
     Lossy,
@@ -95,9 +98,9 @@ impl From<i64> for Quality {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Artist {
-    pub id: Option<i64>,
+    pub artist_id: Option<i64>,
     pub name: String,
 }
 
@@ -116,7 +119,7 @@ impl Store for Artist {
         statement.bind((":name", name))?;
 
         database::execute_statement(&mut statement)?;
-        self.id = Some(database::last_id(conn)?);
+        self.artist_id = Some(database::last_id(conn)?);
         Ok(())
     }
 
@@ -130,7 +133,7 @@ impl Store for Artist {
 
         if let Ok(State::Row) = statement.next() {
             let artist_id = statement.read::<i64, _>(0)?;
-            self.id = Some(artist_id);
+            self.artist_id = Some(artist_id);
             return Ok(true);
         }
 
@@ -178,7 +181,7 @@ impl Store for Artist {
 
         while let Ok(State::Row) = statement.next() {
             let artist = Artist {
-                id: Some(statement.read::<i64, _>("artist_id")?),
+                artist_id: Some(statement.read::<i64, _>("artist_id")?),
                 name: statement.read::<String, _>("name")?,
             };
             artists.push(artist);
@@ -193,9 +196,9 @@ impl StoreFull for Artist {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Album {
-    pub id: Option<i64>,
+    pub album_id: Option<i64>,
     pub name: String,
     pub artist: Option<Artist>,
     pub cover_path: Option<String>,
@@ -222,7 +225,7 @@ impl Store for Album {
 
         let mut artist_id: Option<i64> = None;
         if let Some(artist) = &self.artist {
-            artist_id = artist.id
+            artist_id = artist.artist_id
         }
 
         statement.bind((":name", &self.name[..]))?;
@@ -234,21 +237,16 @@ impl Store for Album {
         statement.bind((":total_discs", self.total_discs))?;
 
         database::execute_statement(&mut statement)?;
-        self.id = Some(database::last_id(conn)?);
+        self.album_id = Some(database::last_id(conn)?);
         Ok(())
     }
 
     fn exists(&mut self, conn: &sqlite::Connection) -> Result<bool, sqlite::Error> {
         ensure_valid(self)?;
 
-        let artist_id: Option<i64> = if let Some(artist) = &self.artist {
-            if let Some(artist_id) = artist.id {
-                Some(artist_id)
-            } else {
-                None
-            }
-        } else {
-            None
+        let artist_id = match &self.artist {
+            Some(artist) => artist.artist_id,
+            None => None,
         };
 
         // Bit messy but searches with the artist only if the album has one
@@ -277,7 +275,7 @@ impl Store for Album {
         if let Ok(State::Row) = statement.next() {
             let album_id = statement.read::<i64, _>(0)?;
             // Assing the found id to the mutable ref
-            self.id = Some(album_id);
+            self.album_id = Some(album_id);
             return Ok(true);
         }
 
@@ -351,11 +349,11 @@ impl Store for Album {
             let artist_name = statement.read::<Option<String>, _>("artist_name")?;
 
             let album = Album {
-                id: Some(statement.read::<i64, _>("album_id")?),
+                album_id: Some(statement.read::<i64, _>("album_id")?),
                 name: statement.read::<String, _>("name")?,
                 artist: if artist_id.is_some() {
                     Some(Artist {
-                        id: artist_id,
+                        artist_id,
                         name: artist_name.unwrap_or("".to_string()),
                     })
                 } else {
@@ -381,9 +379,9 @@ impl StoreFull for Album {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Song {
-    pub id: Option<i64>,
+    pub song_id: Option<i64>,
     pub name: String,
     pub file_path: String,
     pub track: Option<u16>,
@@ -412,21 +410,21 @@ impl Store for Song {
         let mut statement = conn.prepare(query)?;
 
         let artist_id = if let Some(artist) = &self.artist {
-            artist.id
+            artist.artist_id
         } else {
             None
         };
 
         let album_id = if let Some(album) = &self.album {
-            album.id
+            album.album_id
         } else {
             None
         };
 
         statement.bind((":name", &self.name[..]))?;
         statement.bind((":file_path", &self.file_path[..]))?;
-        statement.bind((":track", self.track.into_option()))?;
-        statement.bind((":disc", self.disc.into_option()))?;
+        statement.bind((":track", self.track.option_into()))?;
+        statement.bind((":disc", self.disc.option_into()))?;
         statement.bind((":duration_s", self.duration_s))?;
         statement.bind((":quality", self.quality as i64))?;
         statement.bind((":genre", option_as_slice(&self.genre)))?;
@@ -434,7 +432,7 @@ impl Store for Song {
         statement.bind((":album_id", album_id))?;
 
         database::execute_statement(&mut statement)?;
-        self.id = Some(database::last_id(conn)?);
+        self.song_id = Some(database::last_id(conn)?);
         Ok(())
     }
 
@@ -453,7 +451,7 @@ impl Store for Song {
         if let Ok(State::Row) = statement.next() {
             let song_id = statement.read::<i64, _>(0)?;
             // Assing the found id to the mutable ref
-            self.id = Some(song_id);
+            self.song_id = Some(song_id);
             return Ok(true);
         }
 
@@ -555,7 +553,7 @@ impl Store for Song {
             let album_artist_name = statement.read::<Option<String>, _>("album_artist_name")?;
 
             let song = Song {
-                id: Some(statement.read::<i64, _>("song_id")?),
+                song_id: Some(statement.read::<i64, _>("song_id")?),
                 name: statement.read::<String, _>("name")?,
                 file_path: statement.read::<String, _>("file_path")?,
                 track: option_cast::<i64, u16>(statement.read::<Option<i64>, _>("track")?),
@@ -565,7 +563,7 @@ impl Store for Song {
                 genre: statement.read::<Option<String>, _>("genre")?,
                 artist: if artist_id.is_some() && artist_name.is_some() {
                     Some(Artist {
-                        id: artist_id,
+                        artist_id,
                         name: artist_name.unwrap_or("".into()),
                     })
                 } else {
@@ -573,11 +571,11 @@ impl Store for Song {
                 },
                 album: if album_id.is_some() && album_name.is_some() {
                     Some(Album {
-                        id: album_id,
+                        album_id,
                         name: album_name.unwrap_or("".into()),
                         artist: if album_artist_id.is_some() && album_artist_name.is_some() {
                             Some(Artist {
-                                id: album_artist_id,
+                                artist_id: album_artist_id,
                                 name: album_artist_name.unwrap_or("".into()),
                             })
                         } else {
@@ -612,9 +610,9 @@ impl StoreFull for Song {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Playlist {
-    pub id: Option<i64>,
+    pub playlist_id: Option<i64>,
     pub name: String,
     pub desc: String,
     pub cover_path: Option<String>,
@@ -644,7 +642,7 @@ impl Store for Playlist {
         statement.bind((":tags", &self.tags.join(",")[..]))?;
 
         database::execute_statement(&mut statement)?;
-        self.id = Some(database::last_id(conn)?);
+        self.playlist_id = Some(database::last_id(conn)?);
         Ok(())
     }
 
@@ -714,7 +712,7 @@ impl Store for Playlist {
             }
 
             let playlist = Playlist {
-                id: Some(statement.read::<i64, _>("playlist_id")?),
+                playlist_id: Some(statement.read::<i64, _>("playlist_id")?),
                 name: statement.read::<String, _>("name")?,
                 desc: statement.read::<String, _>("desc")?,
                 cover_path: statement.read::<Option<String>, _>("cover_path")?,
@@ -728,7 +726,7 @@ impl Store for Playlist {
 }
 
 pub struct PlaylistSong {
-    pub id: Option<i64>,
+    pub playlist_song_id: Option<i64>,
     pub song_id: i64,
     pub playlist_id: i64,
 }
@@ -751,7 +749,7 @@ impl Store for PlaylistSong {
         statement.bind((":playlist_id", self.playlist_id))?;
 
         database::execute_statement(&mut statement)?;
-        self.id = Some(database::last_id(conn)?);
+        self.playlist_song_id = Some(database::last_id(conn)?);
         Ok(())
     }
 
@@ -772,7 +770,7 @@ impl Store for PlaylistSong {
 
         if let Ok(State::Row) = statement.next() {
             let song_id = statement.read::<i64, _>(0)?;
-            self.id = Some(song_id);
+            self.playlist_song_id = Some(song_id);
             return Ok(true);
         }
 
@@ -782,4 +780,8 @@ impl Store for PlaylistSong {
     fn is_valid(&self) -> bool {
         self.song_id > 0 && self.playlist_id > 0
     }
+}
+
+pub struct Settings {
+    pub directories: Vec<String>,
 }

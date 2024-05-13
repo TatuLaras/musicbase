@@ -1,0 +1,36 @@
+.grid-view {
+    margin: 0.8em;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(8em, 1fr));
+    overflow-x: hidden;
+    flex: 1;
+    align-content: start;
+}
+
+.grid-view .item {
+    padding: 1em;
+    border-radius: 0.5em;
+    transition: background 0.1s ease-out;
+    cursor: pointer;
+}
+
+.grid-view .item:hover {
+    background-color: var(--color-bg-light-1);
+}
+
+.grid-view .item img {
+    aspect-ratio: 1;
+    width: 100%;
+    object-fit: cover;
+    border-radius: 0.25rem;
+}
+
+.grid-view .item .title {
+    font-weight: 500;
+    margin-top: 0.5em;
+}
+
+.grid-view .item .extra-info {
+    color: var(--color-text-disabled);
+    margin-top: 0.2em;
+}

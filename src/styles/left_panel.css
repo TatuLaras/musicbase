@@ -1,0 +1,21 @@
+#left-panel {
+    background-color: var(--color-bg-light);
+    height: 100%;
+    width: var(--w);
+    display: flex;
+    justify-content: space-between;
+    /* min-width: fit-content; */
+    max-height: 100vh;
+}
+
+#left-panel .grabbable {
+    width: 1em;
+    cursor: col-resize;
+    background-color: var(--color-bg);
+}
+
+#left-panel .content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}

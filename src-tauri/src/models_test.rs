@@ -9,19 +9,19 @@ use crate::{
 static SAMPLE_ARTISTS: Lazy<[Artist; 4]> = Lazy::new(|| {
     [
         Artist {
-            id: None,
+            artist_id: None,
             name: "Björk".into(),
         },
         Artist {
-            id: None,
+            artist_id: None,
             name: "Anssi Kela".into(),
         },
         Artist {
-            id: Some(123),
+            artist_id: Some(123),
             name: "Radiohead".into(),
         },
         Artist {
-            id: Some(123),
+            artist_id: Some(123),
             name: "SQL Injector '`\"".into(),
         },
     ]
@@ -30,7 +30,7 @@ static SAMPLE_ARTISTS: Lazy<[Artist; 4]> = Lazy::new(|| {
 static SAMPLE_ALBUMS: Lazy<[Album; 3]> = Lazy::new(|| {
     [
         Album {
-            id: None,
+            album_id: None,
             name: "Suuria Kuvioita".into(),
             artist: Some(SAMPLE_ARTISTS[0].clone()),
             cover_path: None,
@@ -39,7 +39,7 @@ static SAMPLE_ALBUMS: Lazy<[Album; 3]> = Lazy::new(|| {
             total_discs: Some(1),
         },
         Album {
-            id: None,
+            album_id: None,
             name: "Homogenic".into(),
             artist: Some(SAMPLE_ARTISTS[1].clone()),
             cover_path: Some("path/to/cover/".into()),
@@ -48,7 +48,7 @@ static SAMPLE_ALBUMS: Lazy<[Album; 3]> = Lazy::new(|| {
             total_discs: Some(1),
         },
         Album {
-            id: None,
+            album_id: None,
             name: "Empty album".into(),
             artist: None,
             cover_path: None,
@@ -62,7 +62,7 @@ static SAMPLE_ALBUMS: Lazy<[Album; 3]> = Lazy::new(|| {
 static SAMPLE_SONGS: Lazy<[Song; 4]> = Lazy::new(|| {
     [
         Song {
-            id: None,
+            song_id: None,
             name: "Suuria Kuvioita".into(),
             track: Some(7),
             duration_s: Some(220.0),
@@ -74,7 +74,7 @@ static SAMPLE_SONGS: Lazy<[Song; 4]> = Lazy::new(|| {
             disc: Some(1),
         },
         Song {
-            id: None,
+            song_id: None,
             name: "Empty song".into(),
             track: None,
             duration_s: None,
@@ -86,7 +86,7 @@ static SAMPLE_SONGS: Lazy<[Song; 4]> = Lazy::new(|| {
             disc: None,
         },
         Song {
-            id: None,
+            song_id: None,
             name: "Like the wind".into(),
             track: Some(1),
             duration_s: Some(190.0),
@@ -98,7 +98,7 @@ static SAMPLE_SONGS: Lazy<[Song; 4]> = Lazy::new(|| {
             disc: Some(1),
         },
         Song {
-            id: None,
+            song_id: None,
             name: "Bachelorette".into(),
             track: Some(4),
             duration_s: Some(220.0),
@@ -115,7 +115,7 @@ static SAMPLE_SONGS: Lazy<[Song; 4]> = Lazy::new(|| {
 static SAMPLE_PLAYLISTS: Lazy<[Playlist; 3]> = Lazy::new(|| {
     [
         Playlist {
-            id: None,
+            playlist_id: None,
             name: "Alternative rock".into(),
             desc: "Rock that is alternative".into(),
             cover_path: Some("/path/to/cover".into()),
@@ -123,7 +123,7 @@ static SAMPLE_PLAYLISTS: Lazy<[Playlist; 3]> = Lazy::new(|| {
             tags: vec!["chill".into(), "summer".into()],
         },
         Playlist {
-            id: None,
+            playlist_id: None,
             name: "Flipping rocking tunes".into(),
             desc: "Tunes that are flipping rocking".into(),
             cover_path: None,
@@ -131,7 +131,7 @@ static SAMPLE_PLAYLISTS: Lazy<[Playlist; 3]> = Lazy::new(|| {
             tags: Vec::new(),
         },
         Playlist {
-            id: None,
+            playlist_id: None,
             name: "Bangers".into(),
             desc: "Yipii".into(),
             cover_path: None,
@@ -154,7 +154,7 @@ fn insert_and_retrieve_artist() {
 
     for (i, db_artist) in db_artists.clone().into_iter().enumerate() {
         assert_eq!(SAMPLE_ARTISTS[i].name, db_artists[i].name);
-        if let Some(id) = db_artist.id {
+        if let Some(id) = db_artist.artist_id {
             assert!(id > 0);
         } else {
             panic!("No ID");
@@ -169,7 +169,7 @@ fn last_insert_row_id_artist() {
     for mut artist in SAMPLE_ARTISTS.clone().into_iter() {
         counter += 1;
         db.insert(&mut artist).expect("Insert");
-        assert_eq!(artist.id.unwrap(), counter);
+        assert_eq!(artist.artist_id.unwrap(), counter);
     }
 
     let last_id = db.last_id().expect("Last ID retrieval");
@@ -183,7 +183,7 @@ fn last_insert_row_id_playlist() {
     for mut playlist in SAMPLE_PLAYLISTS.clone().into_iter() {
         counter += 1;
         db.insert(&mut playlist).expect("Insert");
-        assert_eq!(playlist.id.unwrap(), counter);
+        assert_eq!(playlist.playlist_id.unwrap(), counter);
     }
 
     let last_id = db.last_id().expect("Last ID retrieval");
@@ -197,7 +197,7 @@ fn last_insert_row_id_album() {
     for mut album in SAMPLE_ALBUMS.clone().into_iter() {
         counter += 1;
         db.insert(&mut album).expect("Insert");
-        assert_eq!(album.id.unwrap(), counter);
+        assert_eq!(album.album_id.unwrap(), counter);
     }
 
     let last_id = db.last_id().expect("Last ID retrieval");
@@ -211,7 +211,7 @@ fn last_insert_row_id_song() {
     for mut song in SAMPLE_SONGS.clone().into_iter() {
         counter += 1;
         db.insert(&mut song).expect("Insert");
-        assert_eq!(song.id.unwrap(), counter);
+        assert_eq!(song.song_id.unwrap(), counter);
     }
 
     let last_id = db.last_id().expect("Last ID retrieval");
@@ -223,7 +223,7 @@ fn last_insert_row_id_song() {
 fn empty_artist() {
     let db = get_mock_db();
     db.insert(&mut Artist {
-        id: None,
+        artist_id: None,
         name: "".into(),
     })
     .expect("Expected error");
@@ -234,7 +234,7 @@ fn empty_artist() {
 fn empty_album() {
     let db = get_mock_db();
     db.insert(&mut Album {
-        id: None,
+        album_id: None,
         name: "".into(),
         artist: None,
         cover_path: None,
@@ -250,7 +250,7 @@ fn empty_album() {
 fn empty_song() {
     let db = get_mock_db();
     db.insert(&mut Song {
-        id: None,
+        song_id: None,
         name: "".into(),
         file_path: "".into(),
         track: None,
@@ -272,11 +272,11 @@ fn artist_exists() {
         counter += 1;
         db.insert(&mut artist).expect("Insert");
         let mut artist_without_id = Artist {
-            id: None,
+            artist_id: None,
             name: artist.name,
         };
         assert!(db.exists(&mut artist_without_id).expect("Exists check"));
-        if let Some(id) = artist_without_id.id {
+        if let Some(id) = artist_without_id.artist_id {
             assert_eq!(counter, id);
         } else {
             panic!("No ID");
@@ -285,7 +285,7 @@ fn artist_exists() {
 
     assert!(!db
         .exists(&mut Artist {
-            id: None,
+            artist_id: None,
             name: "Does not exist".into(),
         })
         .expect("Exists check"));
@@ -320,7 +320,7 @@ fn insert_and_retrieve_album() {
             }
         }
 
-        if let Some(id) = db_album.id {
+        if let Some(id) = db_album.album_id {
             assert!(id > 0);
         } else {
             panic!("No ID");
@@ -339,7 +339,7 @@ fn album_exists() {
         }
         db.insert(&mut album).expect("Insert");
         assert!(db.exists(&mut album).expect("Exists check"));
-        if let Some(id) = album.id {
+        if let Some(id) = album.album_id {
             assert_eq!(counter, id);
         } else {
             panic!("No ID");
@@ -348,7 +348,7 @@ fn album_exists() {
 
     assert!(!db
         .exists(&mut Album {
-            id: None,
+            album_id: None,
             name: "Does not exist".to_string(),
             artist: None,
             cover_path: None,
@@ -475,7 +475,7 @@ fn song_exists() {
         counter += 1;
         db.insert_full(&mut song).expect("Song full insert");
         let mut song_to_search = Song {
-            id: None,
+            song_id: None,
             name: "".into(),
             file_path: song.file_path,
             track: None,
@@ -487,12 +487,12 @@ fn song_exists() {
             album: None,
         };
         assert!(db.exists(&mut song_to_search).expect("Exists check"));
-        assert_eq!(song_to_search.id.expect(""), counter);
+        assert_eq!(song_to_search.song_id.expect(""), counter);
     }
 
     assert!(!db
         .exists(&mut Album {
-            id: None,
+            album_id: None,
             name: "Does not exist".to_string(),
             artist: None,
             cover_path: None,
@@ -511,9 +511,9 @@ fn double_insert_id_artist() {
     }
 
     let mut test_artist = SAMPLE_ARTISTS[1].clone();
-    assert!(test_artist.id.is_none());
+    assert!(test_artist.artist_id.is_none());
     db.insert_full(&mut test_artist).expect("Second insert");
-    assert_eq!(test_artist.id, Some(2));
+    assert_eq!(test_artist.artist_id, Some(2));
 }
 
 #[test]
@@ -524,9 +524,9 @@ fn double_insert_id_album() {
     }
 
     let mut test_album = SAMPLE_ALBUMS[1].clone();
-    assert!(test_album.id.is_none());
+    assert!(test_album.album_id.is_none());
     db.insert(&mut test_album).expect("Second insert");
-    assert_eq!(test_album.id, Some(2));
+    assert_eq!(test_album.album_id, Some(2));
 }
 
 #[test]
@@ -537,9 +537,9 @@ fn double_insert_id_songs() {
     }
 
     let mut test_song = SAMPLE_SONGS[1].clone();
-    assert!(test_song.id.is_none());
+    assert!(test_song.song_id.is_none());
     db.insert_full(&mut test_song).expect("Second insert");
-    assert_eq!(test_song.id, Some(2));
+    assert_eq!(test_song.song_id, Some(2));
 }
 
 #[test]
@@ -569,7 +569,7 @@ fn sorting() {
 
     let mut prev = 0;
     for song in &db_songs_default {
-        if let Some(id) = song.id {
+        if let Some(id) = song.song_id {
             assert!(id > prev);
             prev = id;
         } else {
@@ -587,7 +587,7 @@ fn sorting() {
     let mut prev = 0;
     for album in &db_album_artist_id {
         if let Some(artist) = &album.artist {
-            if let Some(id) = artist.id {
+            if let Some(id) = artist.artist_id {
                 assert!(id > prev);
                 prev = id;
             } else {
@@ -598,7 +598,7 @@ fn sorting() {
 
     let mut prev = 0;
     for artist in &db_artist_default {
-        if let Some(id) = artist.id {
+        if let Some(id) = artist.artist_id {
             assert!(id > prev);
             prev = id;
         } else {
@@ -608,7 +608,7 @@ fn sorting() {
 
     let mut prev = 0;
     for album in &db_album_default {
-        if let Some(id) = album.id {
+        if let Some(id) = album.album_id {
             assert!(id > prev);
             prev = id;
         } else {
@@ -626,7 +626,7 @@ fn insert_and_retrieve_playlist() {
         for _ in 0..2 {
             counter += 1;
             db.insert(&mut playlist).unwrap();
-            assert_eq!(playlist.id.unwrap(), counter);
+            assert_eq!(playlist.playlist_id.unwrap(), counter);
         }
     }
 
@@ -643,7 +643,7 @@ fn insert_and_retrieve_playlist() {
             assert_eq!(db_playlist.cover_path, sample_playlist.cover_path);
             assert!(db_playlist.created.clone().unwrap().len() > 0);
             assert_eq!(db_playlist.tags, sample_playlist.tags);
-            assert!(db_playlist.id.unwrap() > 0);
+            assert!(db_playlist.playlist_id.unwrap() > 0);
         }
     }
 }
@@ -655,33 +655,33 @@ fn playlist_song_exists() {
     for mut playlist in SAMPLE_PLAYLISTS.clone().into_iter() {
         counter += 1;
         db.insert(&mut playlist).expect("Insert");
-        assert_eq!(counter, playlist.id.unwrap());
+        assert_eq!(counter, playlist.playlist_id.unwrap());
         for mut song in SAMPLE_SONGS.clone().into_iter() {
             db.insert(&mut song).unwrap();
 
             let mut playlist_song = PlaylistSong {
-                id: None,
-                song_id: song.id.unwrap(),
-                playlist_id: playlist.id.unwrap(),
+                playlist_song_id: None,
+                song_id: song.song_id.unwrap(),
+                playlist_id: playlist.playlist_id.unwrap(),
             };
 
             db.insert(&mut playlist_song).unwrap();
-            playlist_song.id.unwrap();
+            playlist_song.playlist_song_id.unwrap();
 
             let mut playlist_song = PlaylistSong {
-                id: None,
+                playlist_song_id: None,
                 song_id: playlist_song.song_id,
                 playlist_id: playlist_song.playlist_id,
             };
 
             assert!(db.exists(&mut playlist_song).expect("Exists check"));
-            playlist_song.id.unwrap();
+            playlist_song.playlist_song_id.unwrap();
         }
     }
 
     assert!(!db
         .exists(&mut Playlist {
-            id: None,
+            playlist_id: None,
             name: "Does not exist".into(),
             desc: "Does not exist".into(),
             cover_path: None,
@@ -699,7 +699,7 @@ fn empty_exists() {
     }
     assert!(!db
         .exists(&mut Artist {
-            id: None,
+            artist_id: None,
             name: "".into(),
         })
         .unwrap());
@@ -716,10 +716,6 @@ fn get_by() {
         db.insert(&mut playlist).unwrap();
     }
 
-    let artists = db.get_all::<Artist>(Order::Default).unwrap();
-    let albums = db.get_all::<Album>(Order::Default).unwrap();
-    let songs = db.get_all::<Song>(Order::Default).unwrap();
-
     assert_eq!(
         db.get_by::<Song>(eq("genre", "Lost wave"), Order::Default)
             .unwrap()[0]
@@ -735,7 +731,7 @@ fn get_by() {
     assert_eq!(
         db.get_by::<Song>(gte("track", "5"), Order::Default)
             .unwrap()[0]
-            .id
+            .song_id
             .unwrap(),
         1
     );
@@ -743,7 +739,7 @@ fn get_by() {
     assert_eq!(
         db.get_by::<Album>(lt("year", "2000"), Order::Default)
             .unwrap()[0]
-            .id
+            .album_id
             .unwrap(),
         2
     );

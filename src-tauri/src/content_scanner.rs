@@ -1,23 +1,35 @@
-use audiotags::Tag;
+use std::{fs, io::Write};
+
+use audiotags::{Picture, Tag};
 use walkdir::WalkDir;
 
 use crate::{
     database::ConnectionWrapper,
+    fs_utils::{get_unique_path, mime_type_to_extension},
     library,
-    models::{Album, Artist, Quality, Song},
+    models::{err, Album, Artist, Quality, Song},
     utils::IntoOption,
 };
 
+pub struct MetadataResult<'a> {
+    pub song: Song,
+    pub album_cover: Option<Picture<'a>>,
+}
+
 // Scans a given directory and commits music metadata to database
-pub fn scan_for_new_content(dir: &str, db: &ConnectionWrapper) -> Result<(), sqlite::Error> {
+pub fn scan_for_new_content(
+    dir: &str,
+    db: &ConnectionWrapper,
+    image_cache_dir: Option<&str>,
+) -> Result<(), sqlite::Error> {
     for entry in WalkDir::new(dir).into_iter() {
         if let Ok(entry) = entry {
             let path = entry.path().to_string_lossy();
             if !is_audio(&path) || library::has_file(&path, db) {
                 continue;
             }
-            let mut song = get_metadata(&path);
-            db.insert_full(&mut song)?;
+
+            save_metadata(&path, db, image_cache_dir)?;
         }
     }
 
@@ -36,24 +48,30 @@ fn is_audio(file_path: &str) -> bool {
     false
 }
 
-// Parse file metadata into objects
-fn get_metadata(file_path: &str) -> Song {
-    let tag = Tag::new().read_from_path(file_path).unwrap();
+fn save_metadata(
+    file_path: &str,
+    db: &ConnectionWrapper,
+    image_cache_dir: Option<&str>,
+) -> Result<(), sqlite::Error> {
+    let Ok(tag) = Tag::new().read_from_path(file_path) else {
+        return err("Could not get audio file metadata");
+    };
 
     let artist_name = tag.artist();
     let artist = if let Some(name) = artist_name {
         Some(Artist {
-            id: None,
+            artist_id: None,
             name: name.into(),
         })
     } else {
         None
     };
 
+    // Use album artist, if that doesn't exist use the song artist instead
     let album_artist_name = tag.album_artist();
     let album_artist = if let Some(name) = album_artist_name {
         Some(Artist {
-            id: None,
+            artist_id: None,
             name: name.into(),
         })
     } else {
@@ -63,20 +81,19 @@ fn get_metadata(file_path: &str) -> Song {
     let album_name = tag.album_title();
     let album = if let Some(name) = album_name {
         Some(Album {
-            id: None,
+            album_id: None,
             name: name.into(),
-            cover_path: Some(String::from("")),
-            year: tag.year().into_option(),
-            total_tracks: tag.total_tracks().into_option(),
-            total_discs: tag.total_discs().into_option(),
+            cover_path: None,
+            year: tag.year().option_into(),
+            total_tracks: tag.total_tracks().option_into(),
+            total_discs: tag.total_discs().option_into(),
             artist: album_artist,
         })
     } else {
         None
     };
-
-    Song {
-        id: None,
+    let mut song = Song {
+        song_id: None,
         name: get_str(tag.title()),
         track: tag.track_number(),
         duration_s: tag.duration(),
@@ -85,14 +102,54 @@ fn get_metadata(file_path: &str) -> Song {
         } else {
             Quality::Lossy
         },
-        genre: tag.genre().into_option(),
+        genre: tag.genre().option_into(),
         artist,
         album,
         disc: tag.disc_number(),
         file_path: file_path.into(),
+    };
+
+    if let Some(album) = &mut song.album {
+        if !db.exists(album)? {
+            album.cover_path = save_cover(tag.album_cover(), image_cache_dir);
+        }
     }
+
+    db.insert_full(&mut song)?;
+    Ok(())
 }
 
 fn get_str(value: Option<&str>) -> String {
     value.unwrap_or("Unknown").to_string()
+}
+
+fn save_image<'a>(picture: Picture, image_cache_dir: &str) -> Result<String, String> {
+    println!("save image");
+    // Create a path that does not exist already
+    let extension = mime_type_to_extension(picture.mime_type);
+    let path = get_unique_path(image_cache_dir, extension)?;
+    println!("Path: {}", path);
+
+    // Write file, handle errors
+    let file = fs::OpenOptions::new().create(true).write(true).open(&path);
+
+    let Ok(mut file) = file else { return Err("Couldn't open file".into()); };
+
+    if let Ok(_) = file.write_all(&picture.data) {
+        return Ok(path);
+    }
+    Err("Unknown error".into())
+}
+
+fn save_cover(picture: Option<Picture>, image_cache_dir: Option<&str>) -> Option<String> {
+    println!("Try to save cover");
+    let Some(picture) = picture else { return None };
+    let Some(image_cache_dir) = image_cache_dir else { return  None };
+    match save_image(picture, image_cache_dir) {
+        Ok(value) => Some(value),
+        Err(error) => {
+            println!("Error in save_cover: {}", error);
+            None
+        }
+    }
 }

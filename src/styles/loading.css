@@ -1,0 +1,40 @@
+@keyframes bop {
+    0% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(var(--bop-amount));
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    --bring-together: 0.35em;
+    padding-top: 2em;
+}
+
+.loading * {
+    color: var(--color-accent-primary);
+}
+
+.loading .larger {
+    --bop-amount: -0.4em;
+    font-size: 2em;
+    position: relative;
+    left: var(--bring-together);
+    animation: bop 2s ease-in-out infinite;
+}
+
+.loading .smaller {
+    --bop-amount: -0.3em;
+    font-size: 1.6em;
+    position: relative;
+    right: var(--bring-together);
+    animation: bop 2s ease-in-out infinite -0.2s;
+}

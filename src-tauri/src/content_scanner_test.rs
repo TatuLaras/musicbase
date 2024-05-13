@@ -9,7 +9,7 @@ use crate::{
 fn works() {
     let expected_songs = vec![
         Song {
-            id: Some(1),
+            song_id: Some(1),
             name: "mp3 track 1".into(),
             file_path: "test_audio/sample1.mp3".into(),
             track: Some(1),
@@ -18,24 +18,24 @@ fn works() {
             quality: Quality::Lossy,
             genre: Some("Nothing".into()),
             artist: Some(Artist {
-                id: Some(1),
+                artist_id: Some(1),
                 name: "mp3 artist".into(),
             }),
             album: Some(Album {
-                id: Some(1),
+                album_id: Some(1),
                 name: "mp3 album ".into(),
                 artist: Some(Artist {
-                    id: Some(1),
+                    artist_id: Some(1),
                     name: "mp3 artist".into(),
                 }),
-                cover_path: Some("".into()),
+                cover_path: None,
                 year: Some(2024),
                 total_tracks: None,
                 total_discs: None,
             }),
         },
         Song {
-            id: Some(2),
+            song_id: Some(2),
             name: "flac track 2".into(),
             file_path: "test_audio/sample4.flac".into(),
             track: Some(2),
@@ -44,24 +44,24 @@ fn works() {
             quality: Quality::Lossless,
             genre: Some("Nothing pop".into()),
             artist: Some(Artist {
-                id: Some(2),
+                artist_id: Some(2),
                 name: "flac artist".into(),
             }),
             album: Some(Album {
-                id: Some(2),
+                album_id: Some(2),
                 name: "flac album 2".into(),
                 artist: Some(Artist {
-                    id: Some(2),
+                    artist_id: Some(2),
                     name: "flac artist".into(),
                 }),
-                cover_path: Some("".into()),
+                cover_path: None,
                 year: Some(1990),
                 total_tracks: None,
                 total_discs: None,
             }),
         },
         Song {
-            id: Some(3),
+            song_id: Some(3),
             name: "mp3 track 2".into(),
             file_path: "test_audio/sample2.mp3".into(),
             track: Some(2),
@@ -70,24 +70,24 @@ fn works() {
             quality: Quality::Lossy,
             genre: Some("Nothing".into()),
             artist: Some(Artist {
-                id: Some(1),
+                artist_id: Some(1),
                 name: "mp3 artist".into(),
             }),
             album: Some(Album {
-                id: Some(1),
+                album_id: Some(1),
                 name: "mp3 album ".into(),
                 artist: Some(Artist {
-                    id: Some(1),
+                    artist_id: Some(1),
                     name: "mp3 artist".into(),
                 }),
-                cover_path: Some("".into()),
+                cover_path: None,
                 year: Some(2024),
                 total_tracks: None,
                 total_discs: None,
             }),
         },
         Song {
-            id: Some(4),
+            song_id: Some(4),
             name: "flac track 1".into(),
             file_path: "test_audio/sample3.flac".into(),
             track: Some(1),
@@ -96,17 +96,17 @@ fn works() {
             quality: Quality::Lossless,
             genre: Some("Nothing rock".into()),
             artist: Some(Artist {
-                id: Some(2),
+                artist_id: Some(2),
                 name: "flac artist".into(),
             }),
             album: Some(Album {
-                id: Some(3),
+                album_id: Some(3),
                 name: "flac album".into(),
                 artist: Some(Artist {
-                    id: Some(2),
+                    artist_id: Some(2),
                     name: "flac artist".into(),
                 }),
-                cover_path: Some("".into()),
+                cover_path: None,
                 year: Some(1980),
                 total_tracks: None,
                 total_discs: None,
@@ -115,10 +115,11 @@ fn works() {
     ];
 
     let db = get_mock_db();
-    scan_for_new_content("test_audio/", &db).unwrap();
+    scan_for_new_content("test_audio/", &db, None).unwrap();
 
     let db_songs = db.get_all::<Song>(Order::Default).unwrap();
     for target in db_songs {
+        println!("{:?}", target);
         assert!(expected_songs.contains(&target))
     }
 }

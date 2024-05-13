@@ -1,5 +1,6 @@
 pub mod content_scanner;
 pub mod database;
+pub mod fs_utils;
 pub mod library;
 pub mod models;
 pub mod param;

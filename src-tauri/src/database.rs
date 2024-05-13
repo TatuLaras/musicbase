@@ -10,7 +10,7 @@ pub struct ConnectionWrapper {
 }
 
 impl ConnectionWrapper {
-    pub fn create_schema(&self) {
+    pub fn create_schema(&self) -> Result<(), sqlite::Error> {
         let query = "
         CREATE TABLE artist (
             artist_id INTEGER PRIMARY KEY,
@@ -58,7 +58,7 @@ impl ConnectionWrapper {
         );
         ";
 
-        self.conn.execute(query).unwrap();
+        self.conn.execute(query)
     }
 
     pub fn insert(&self, item: &mut impl Store) -> Result<(), sqlite::Error> {

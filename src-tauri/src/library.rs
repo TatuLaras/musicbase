@@ -5,7 +5,7 @@ use crate::{
 
 pub fn has_file(file_path: &str, db: &ConnectionWrapper) -> bool {
     db.exists(&mut Song {
-        id: None,
+        song_id: None,
         name: "".into(),
         file_path: file_path.into(),
         track: None,
