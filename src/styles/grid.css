@@ -25,6 +25,11 @@
     border-radius: 0.25rem;
 }
 
+.grid-view.circles .item img {
+    border-radius: 50%;
+    margin-bottom: 0.5em;
+}
+
 .grid-view .item .title {
     font-weight: 500;
     margin-top: 0.5em;

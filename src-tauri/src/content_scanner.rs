@@ -62,6 +62,7 @@ fn save_metadata(
         Some(Artist {
             artist_id: None,
             name: name.into(),
+            artist_image_path: None,
         })
     } else {
         None
@@ -73,6 +74,7 @@ fn save_metadata(
         Some(Artist {
             artist_id: None,
             name: name.into(),
+            artist_image_path: None,
         })
     } else {
         artist.clone()

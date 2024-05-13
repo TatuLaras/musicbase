@@ -9,7 +9,6 @@ type Props = {
 };
 
 async function getAlbums(): Promise<GridItem[]> {
-    invoke('scan');
     const result = (await invoke('get_all_albums')) as Album[];
 
     return result.map((album) => {
@@ -26,11 +25,29 @@ async function getAlbums(): Promise<GridItem[]> {
     });
 }
 
+async function getArtists(): Promise<GridItem[]> {
+    const result = (await invoke('get_all_artists')) as Artist[];
+
+    return result.map((artist) => {
+        console.log(artist);
+        return {
+            id: artist.artist_id ?? 0,
+            title: artist.name,
+            extra_info: '',
+            //  TODO: Älä tee ?? '' vaan joku kunnon placeholder tilalle
+            image_url: convertFileSrc(artist.artist_image_path ?? ''),
+            onSelected: function (id: number): void {
+                console.log(`Select artist ${id}`);
+            },
+        };
+    });
+}
+
 function Library({ view }: Props) {
     console.log('rerender');
     const content: { [key: string]: JSX.Element } = {
         albums: <GridView item_source={getAlbums} />,
-        artists: <Loading />,
+        artists: <GridView item_source={getArtists} circles={true} />,
         playlists: <h1>Playlists</h1>,
         tags: <h1>Tags</h1>,
     };

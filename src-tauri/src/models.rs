@@ -102,6 +102,7 @@ impl From<i64> for Quality {
 pub struct Artist {
     pub artist_id: Option<i64>,
     pub name: String,
+    pub artist_image_path: Option<String>,
 }
 
 impl Store for Artist {
@@ -148,9 +149,21 @@ impl Store for Artist {
     where
         Self: Sized,
     {
+        // select ar.artist_id, ar.name, al.cover_path AS artist_image from artist ar LEFT JOIN album al ON al.artist_id = ar.artist_id GROUP BY ar.artist_id ;
         let query = format!(
-            "SELECT artist_id, name FROM artist ORDER BY {}",
-            order.as_query(asc("artist_id"))
+            "SELECT 
+            artist.artist_id, 
+            artist.name, 
+            album.cover_path AS artist_image_path 
+
+            FROM artist 
+
+            LEFT JOIN album
+            ON album.artist_id = artist.artist_id
+
+            GROUP BY artist.artist_id
+            ORDER BY {}",
+            order.as_query(asc("artist.artist_id"))
         );
         Self::__get_by_query(conn, &query)
     }
@@ -164,9 +177,22 @@ impl Store for Artist {
         Self: Sized,
     {
         let query = format!(
-            "SELECT artist_id, name FROM artist WHERE {} ORDER BY {}",
+            "SELECT 
+            artist.artist_id, 
+            artist.name, 
+            album.cover_path AS artist_image_path 
+
+            FROM artist 
+
+            LEFT JOIN album
+            ON album.artist_id = artist.artist_id
+
+            WHERE {}
+
+            GROUP BY artist.artist_id
+            ORDER BY {}",
             condition.as_query(Condition::None),
-            order.as_query(asc("artist_id")),
+            order.as_query(asc("artist.artist_id")),
         );
         Self::__get_by_query(conn, &query)
     }
@@ -183,6 +209,7 @@ impl Store for Artist {
             let artist = Artist {
                 artist_id: Some(statement.read::<i64, _>("artist_id")?),
                 name: statement.read::<String, _>("name")?,
+                artist_image_path: statement.read::<Option<String>, _>("artist_image_path")?,
             };
             artists.push(artist);
         }
@@ -355,6 +382,7 @@ impl Store for Album {
                     Some(Artist {
                         artist_id,
                         name: artist_name.unwrap_or("".to_string()),
+                        artist_image_path: None,
                     })
                 } else {
                     None
@@ -565,6 +593,7 @@ impl Store for Song {
                     Some(Artist {
                         artist_id,
                         name: artist_name.unwrap_or("".into()),
+                        artist_image_path: None,
                     })
                 } else {
                     None
@@ -577,6 +606,7 @@ impl Store for Song {
                             Some(Artist {
                                 artist_id: album_artist_id,
                                 name: album_artist_name.unwrap_or("".into()),
+                                artist_image_path: None,
                             })
                         } else {
                             None

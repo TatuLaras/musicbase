@@ -11,9 +11,10 @@ export interface GridItem {
 
 type Props = {
     item_source: () => Promise<GridItem[]>;
+    circles?: boolean;
 };
 
-export default function GridView({ item_source }: Props) {
+export default function GridView({ item_source, circles = false }: Props) {
     const [items, setItems] = useState<GridItem[]>([]);
     const [loading, setLoading] = useState(false);
     // Get grid items from the async function provided
@@ -25,8 +26,10 @@ export default function GridView({ item_source }: Props) {
         });
     }, [item_source]);
 
-    return loading ? <Loading /> : (
-        <div className="grid-view">
+    return loading ? (
+        <Loading />
+    ) : (
+        <div className={`grid-view ${circles ? 'circles' : ''}`}>
             {items.map((item) => (
                 <div
                     key={item.id}

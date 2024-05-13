@@ -1,6 +1,7 @@
 interface Artist {
     artist_id?: number;
     name: string;
+    artist_image_path?: string;
 }
 
 interface Album {

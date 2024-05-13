@@ -2,23 +2,32 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use musicbase::{
-    content_scanner::scan_for_new_content, database::ConnectionWrapper, models::Album, param::Order,
+    content_scanner::scan_for_new_content,
+    database::ConnectionWrapper,
+    models::{Album, Artist, Store},
+    param::Order,
 };
 use tauri::AppHandle;
 
-#[tauri::command]
-fn get_all_albums() -> Vec<Album> {
+fn get_all<T: Store>() -> Vec<T> {
     let db = get_db();
-    match db.get_all::<Album>(Order::Default) {
+    match db.get_all::<T>(Order::Default) {
         Ok(a) => a,
         Err(error) => {
-            println!(
-                "Error in get_all_albums: {}",
-                error.message.unwrap_or("".into())
-            );
+            println!("Error: {}", error.message.unwrap_or("".into()));
             vec![]
         }
     }
+}
+
+#[tauri::command]
+fn get_all_albums() -> Vec<Album> {
+    get_all::<Album>()
+}
+
+#[tauri::command]
+fn get_all_artists() -> Vec<Artist> {
+    get_all::<Artist>()
 }
 
 #[tauri::command]
@@ -48,7 +57,11 @@ fn main() {
     let _ = db.create_schema();
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_all_albums, scan])
+        .invoke_handler(tauri::generate_handler![
+            get_all_albums,
+            scan,
+            get_all_artists
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
