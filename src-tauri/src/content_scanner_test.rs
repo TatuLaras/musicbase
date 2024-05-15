@@ -20,6 +20,7 @@ fn works() {
             artist: Some(Artist {
                 artist_id: Some(1),
                 name: "mp3 artist".into(),
+                artist_image_path: None,
             }),
             album: Some(Album {
                 album_id: Some(1),
@@ -27,6 +28,7 @@ fn works() {
                 artist: Some(Artist {
                     artist_id: Some(1),
                     name: "mp3 artist".into(),
+                    artist_image_path: None,
                 }),
                 cover_path: None,
                 year: Some(2024),
@@ -46,6 +48,7 @@ fn works() {
             artist: Some(Artist {
                 artist_id: Some(2),
                 name: "flac artist".into(),
+                artist_image_path: None,
             }),
             album: Some(Album {
                 album_id: Some(2),
@@ -53,6 +56,7 @@ fn works() {
                 artist: Some(Artist {
                     artist_id: Some(2),
                     name: "flac artist".into(),
+                    artist_image_path: None,
                 }),
                 cover_path: None,
                 year: Some(1990),
@@ -72,6 +76,7 @@ fn works() {
             artist: Some(Artist {
                 artist_id: Some(1),
                 name: "mp3 artist".into(),
+                artist_image_path: None,
             }),
             album: Some(Album {
                 album_id: Some(1),
@@ -79,6 +84,7 @@ fn works() {
                 artist: Some(Artist {
                     artist_id: Some(1),
                     name: "mp3 artist".into(),
+                    artist_image_path: None,
                 }),
                 cover_path: None,
                 year: Some(2024),
@@ -98,6 +104,7 @@ fn works() {
             artist: Some(Artist {
                 artist_id: Some(2),
                 name: "flac artist".into(),
+                artist_image_path: None,
             }),
             album: Some(Album {
                 album_id: Some(3),
@@ -105,6 +112,7 @@ fn works() {
                 artist: Some(Artist {
                     artist_id: Some(2),
                     name: "flac artist".into(),
+                    artist_image_path: None,
                 }),
                 cover_path: None,
                 year: Some(1980),

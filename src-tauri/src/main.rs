@@ -4,7 +4,7 @@
 use musicbase::{
     content_scanner::scan_for_new_content,
     database::ConnectionWrapper,
-    models::{Album, Artist, Store},
+    models::{Album, Artist, Playlist, Store},
     param::Order,
 };
 use tauri::AppHandle;
@@ -28,6 +28,11 @@ fn get_all_albums() -> Vec<Album> {
 #[tauri::command]
 fn get_all_artists() -> Vec<Artist> {
     get_all::<Artist>()
+}
+
+#[tauri::command]
+fn get_all_playlists() -> Vec<Playlist> {
+    get_all::<Playlist>()
 }
 
 #[tauri::command]
@@ -60,7 +65,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_all_albums,
             scan,
-            get_all_artists
+            get_all_artists,
+            get_all_playlists,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

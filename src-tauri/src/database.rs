@@ -46,16 +46,37 @@ impl ConnectionWrapper {
             name TEXT NOT NULL,
             desc TEXT NOT NULL,
             cover_path TEXT,
-            created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            tags TEXT NOT NULL
+            created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
         CREATE TABLE playlist_song (
             playlist_song_id INTEGER PRIMARY KEY,
-            song_id INTEGER,
-            playlist_id INTEGER,
+            song_id INTEGER NOT NULL,
+            playlist_id INTEGER NOT NULL,
             added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        CREATE TABLE tag (
+            tag_id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE
+        );
+
+        CREATE TABLE playlist_tag (
+            playlist_tag_id INTEGER PRIMARY KEY,
+            playlist_id INTEGER NOT NULL,
+            tag_id INTEGER NOT NULL,
+            added TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (playlist_id, tag_id)
+        );
+
+        CREATE TABLE album_tag (
+            album_tag_id INTEGER PRIMARY KEY,
+            album_id INTEGER NOT NULL,
+            tag_id INTEGER NOT NULL,
+            added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (album_id, tag_id)
+        );
+
         ";
 
         self.conn.execute(query)

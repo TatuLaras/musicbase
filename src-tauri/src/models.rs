@@ -42,13 +42,11 @@ pub trait Store {
     fn is_valid(&self) -> bool;
 
     // Returns a vector of all items of a given type
-    // Implementing this is optional, the default implementation returns an empty vector of type
-    // Self
-    fn get_all(_conn: &sqlite::Connection, _order: Order) -> Result<Vec<Self>, sqlite::Error>
+    fn get_all(conn: &sqlite::Connection, order: Order) -> Result<Vec<Self>, sqlite::Error>
     where
         Self: Sized,
     {
-        Ok(Vec::new())
+        Self::get_by(conn, Condition::None, order)
     }
 
     // Takes a condition and returns all objects of the type that match that condition
@@ -57,17 +55,6 @@ pub trait Store {
         _condition: Condition,
         _order: Order,
     ) -> Result<Vec<Self>, sqlite::Error>
-    where
-        Self: Sized,
-    {
-        Ok(Vec::new())
-    }
-
-    // Somewhat of an implementation detail, should not be used externally (expects a specific set
-    // of fields to be there in the query). This exists to avoid code repetition.
-    // Still associated with this trait due to it being the most conventient way to group
-    // this functionality at the moment.
-    fn __get_by_query(_conn: &sqlite::Connection, _query: &str) -> Result<Vec<Self>, sqlite::Error>
     where
         Self: Sized,
     {
@@ -145,29 +132,6 @@ impl Store for Artist {
         self.name.len() > 0
     }
 
-    fn get_all(conn: &sqlite::Connection, order: Order) -> Result<Vec<Self>, sqlite::Error>
-    where
-        Self: Sized,
-    {
-        // select ar.artist_id, ar.name, al.cover_path AS artist_image from artist ar LEFT JOIN album al ON al.artist_id = ar.artist_id GROUP BY ar.artist_id ;
-        let query = format!(
-            "SELECT 
-            artist.artist_id, 
-            artist.name, 
-            album.cover_path AS artist_image_path 
-
-            FROM artist 
-
-            LEFT JOIN album
-            ON album.artist_id = artist.artist_id
-
-            GROUP BY artist.artist_id
-            ORDER BY {}",
-            order.as_query(asc("artist.artist_id"))
-        );
-        Self::__get_by_query(conn, &query)
-    }
-
     fn get_by(
         conn: &sqlite::Connection,
         condition: Condition,
@@ -194,13 +158,6 @@ impl Store for Artist {
             condition.as_query(Condition::None),
             order.as_query(asc("artist.artist_id")),
         );
-        Self::__get_by_query(conn, &query)
-    }
-
-    fn __get_by_query(conn: &sqlite::Connection, query: &str) -> Result<Vec<Self>, sqlite::Error>
-    where
-        Self: Sized,
-    {
         let mut artists: Vec<Artist> = Vec::new();
 
         let mut statement = conn.prepare(query)?;
@@ -214,12 +171,6 @@ impl Store for Artist {
             artists.push(artist);
         }
         Ok(artists)
-    }
-}
-
-impl StoreFull for Artist {
-    fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
-        self.insert(conn)
     }
 }
 
@@ -313,28 +264,6 @@ impl Store for Album {
         self.name.len() > 0
     }
 
-    fn get_all(conn: &sqlite::Connection, order: Order) -> Result<Vec<Self>, sqlite::Error>
-    where
-        Self: Sized,
-    {
-        let query = format!(
-            "SELECT
-
-            album.album_id, album.name, album.artist_id, album.cover_path,
-            album.year, album.total_tracks, album.total_discs, ar.name AS artist_name
-
-            FROM album
-
-            LEFT JOIN artist AS ar
-            ON album.artist_id = ar.artist_id
-
-            ORDER BY {}
-            ",
-            order.as_query(asc("album.album_id"))
-        );
-        Self::__get_by_query(conn, &query)
-    }
-
     fn get_by(
         conn: &sqlite::Connection,
         condition: Condition,
@@ -360,13 +289,6 @@ impl Store for Album {
             condition.as_query(Condition::None),
             order.as_query(asc("album.album_id")),
         );
-        Self::__get_by_query(conn, &query)
-    }
-
-    fn __get_by_query(conn: &sqlite::Connection, query: &str) -> Result<Vec<Self>, sqlite::Error>
-    where
-        Self: Sized,
-    {
         let mut albums: Vec<Album> = Vec::new();
 
         let mut statement = conn.prepare(query)?;
@@ -401,7 +323,7 @@ impl Store for Album {
 impl StoreFull for Album {
     fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
         if let Some(artist) = &mut self.artist {
-            artist.insert_full(conn)?;
+            artist.insert(conn)?;
         }
         self.insert(conn)
     }
@@ -490,40 +412,6 @@ impl Store for Song {
         self.name.len() > 0 && self.file_path.len() > 0
     }
 
-    fn get_all(conn: &sqlite::Connection, order: Order) -> Result<Vec<Self>, sqlite::Error>
-    where
-        Self: Sized,
-    {
-        let query = format!(
-            "SELECT
-            song.song_id, song.name, song.file_path, song.track, song.disc, 
-            song.duration_s, song.quality, song.genre, song.artist_id, song.album_id,
-
-            artist.name AS artist_name,
-
-            album.name AS album_name, album.artist_id AS album_artist_id,
-            album.cover_path, album.year, album.total_tracks, album.total_discs,
-
-            album_artist.name AS album_artist_name
-
-            FROM song
-            
-            LEFT JOIN artist
-            ON artist.artist_id = song.artist_id
-            
-            LEFT JOIN album
-            ON album.album_id = song.album_id
-
-            LEFT JOIN artist AS album_artist
-            ON album_artist.artist_id = album.artist_id
-
-            ORDER BY {}
-            ",
-            order.as_query(asc("song.song_id"))
-        );
-        Self::__get_by_query(conn, &query)
-    }
-
     fn get_by(
         conn: &sqlite::Connection,
         condition: Condition,
@@ -561,13 +449,6 @@ impl Store for Song {
             condition.as_query(Condition::None),
             order.as_query(asc("song.song_id")),
         );
-        Self::__get_by_query(conn, &query)
-    }
-
-    fn __get_by_query(conn: &sqlite::Connection, query: &str) -> Result<Vec<Self>, sqlite::Error>
-    where
-        Self: Sized,
-    {
         let mut songs: Vec<Song> = Vec::new();
 
         let mut statement = conn.prepare(query)?;
@@ -633,7 +514,7 @@ impl StoreFull for Song {
         }
 
         if let Some(artist) = &mut self.artist {
-            artist.insert_full(conn)?;
+            artist.insert(conn)?;
         }
 
         self.insert(conn)
@@ -659,9 +540,9 @@ impl Store for Playlist {
         }
 
         let query = "INSERT INTO playlist  
-        (name, desc, cover_path, tags)
+        (name, desc, cover_path)
         VALUES 
-        (:name, :desc, :cover_path, :tags)
+        (:name, :desc, :cover_path)
         ";
 
         let mut statement = conn.prepare(query)?;
@@ -669,7 +550,6 @@ impl Store for Playlist {
         statement.bind((":name", &self.name[..]))?;
         statement.bind((":desc", &self.desc[..]))?;
         statement.bind((":cover_path", option_as_slice(&self.cover_path)))?;
-        statement.bind((":tags", &self.tags.join(",")[..]))?;
 
         database::execute_statement(&mut statement)?;
         self.playlist_id = Some(database::last_id(conn)?);
@@ -686,22 +566,6 @@ impl Store for Playlist {
         self.name.len() > 0
     }
 
-    fn get_all(conn: &sqlite::Connection, order: Order) -> Result<Vec<Self>, sqlite::Error>
-    where
-        Self: Sized,
-    {
-        let query = format!(
-            "SELECT
-
-            playlist_id, name, desc, cover_path, created, tags
-            FROM playlist
-            ORDER BY {}
-            ",
-            order.as_query(asc("playlist_id"))
-        );
-        Self::__get_by_query(conn, &query)
-    }
-
     fn get_by(
         conn: &sqlite::Connection,
         condition: Condition,
@@ -712,22 +576,26 @@ impl Store for Playlist {
     {
         let query = format!(
             "SELECT
+            playlist.playlist_id, playlist.name, playlist.desc, 
+            playlist.cover_path, playlist.created,
+            GROUP_CONCAT(t.name) AS tags
 
-            playlist_id, name, desc, cover_path, created, tags
             FROM playlist
+
+            LEFT JOIN playlist_tag AS pt
+            ON pt.playlist_id = playlist.playlist_id
+
+            LEFT JOIN tag AS t
+            ON t.tag_id = pt.tag_id
+            
             WHERE {}
+
+            GROUP BY playlist.playlist_id
             ORDER BY {}
             ",
             condition.as_query(Condition::None),
-            order.as_query(asc("playlist_id")),
+            order.as_query(asc("playlist.playlist_id")),
         );
-        Self::__get_by_query(conn, &query)
-    }
-
-    fn __get_by_query(conn: &sqlite::Connection, query: &str) -> Result<Vec<Self>, sqlite::Error>
-    where
-        Self: Sized,
-    {
         let mut playlists: Vec<Playlist> = Vec::new();
 
         let mut statement = conn.prepare(query)?;
@@ -735,9 +603,12 @@ impl Store for Playlist {
         while let Ok(State::Row) = statement.next() {
             // basically .collect() but converts to String also
             let mut tags = Vec::new();
-            for tag in statement.read::<String, _>("tags")?.split(",") {
-                if tag.len() > 0 {
-                    tags.push(tag.to_string());
+            let tags_field = statement.read::<String, _>("tags");
+            if let Ok(tags_field) = tags_field {
+                for tag in tags_field.split(",") {
+                    if tag.len() > 0 {
+                        tags.push(tag.to_string());
+                    }
                 }
             }
 
@@ -752,6 +623,30 @@ impl Store for Playlist {
             playlists.push(playlist);
         }
         Ok(playlists)
+    }
+}
+
+impl StoreFull for Playlist {
+    fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        self.insert(conn)?;
+        for tag in &self.tags {
+            let mut tag = Tag {
+                tag_id: None,
+                name: tag.into(),
+            };
+            tag.insert(conn)?;
+
+            let Some(tag_id) = tag.tag_id else { continue; };
+            let Some(playlist_id) = self.playlist_id else { continue; };
+
+            let mut playlist_tag = PlaylistTag {
+                playlist_tag_id: None,
+                tag_id,
+                playlist_id,
+            };
+            playlist_tag.insert(conn)?;
+        }
+        Ok(())
     }
 }
 
@@ -809,6 +704,203 @@ impl Store for PlaylistSong {
 
     fn is_valid(&self) -> bool {
         self.song_id > 0 && self.playlist_id > 0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Tag {
+    pub tag_id: Option<i64>,
+    pub name: String,
+}
+
+impl Store for Tag {
+    fn insert(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        ensure_valid(self)?;
+
+        if self.exists(conn)? {
+            return Ok(());
+        }
+
+        let query = "INSERT INTO tag
+        (name)
+        VALUES 
+        (:name)
+        ";
+
+        let mut statement = conn.prepare(query)?;
+
+        statement.bind((":name", &self.name[..]))?;
+
+        database::execute_statement(&mut statement)?;
+        self.tag_id = Some(database::last_id(conn)?);
+        Ok(())
+    }
+
+    fn exists(&mut self, conn: &sqlite::Connection) -> Result<bool, sqlite::Error> {
+        let query = "SELECT 
+        tag_id 
+        FROM tag
+        WHERE name = :name
+        LIMIT 1
+        ";
+
+        let mut statement = conn.prepare(query)?;
+
+        statement.bind((":name", &self.name[..]))?;
+
+        if let Ok(State::Row) = statement.next() {
+            let tag_id = statement.read::<i64, _>(0)?;
+            self.tag_id = Some(tag_id);
+            return Ok(true);
+        }
+
+        Ok(false)
+    }
+
+    fn is_valid(&self) -> bool {
+        self.name.len() > 0
+    }
+
+    fn get_by(
+        conn: &sqlite::Connection,
+        condition: Condition,
+        order: Order,
+    ) -> Result<Vec<Self>, sqlite::Error>
+    where
+        Self: Sized,
+    {
+        let query = format!(
+            "SELECT 
+            tag.tag_id, tag.name
+            FROM tag
+            WHERE {}
+            ORDER BY {}
+            ",
+            condition.as_query(Condition::None),
+            order.as_query(asc("tag.tag_id")),
+        );
+        let mut tags: Vec<Tag> = Vec::new();
+
+        let mut statement = conn.prepare(query)?;
+
+        while let Ok(State::Row) = statement.next() {
+            let tag = Tag {
+                tag_id: Some(statement.read::<i64, _>("tag_id")?),
+                name: statement.read::<String, _>("name")?,
+            };
+            tags.push(tag);
+        }
+        Ok(tags)
+    }
+}
+
+pub struct PlaylistTag {
+    pub playlist_tag_id: Option<i64>,
+    pub tag_id: i64,
+    pub playlist_id: i64,
+}
+
+impl Store for PlaylistTag {
+    fn insert(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        ensure_valid(self)?;
+
+        let query = "INSERT INTO playlist_tag
+        (tag_id, playlist_id)
+        VALUES 
+        (:tag_id, :playlist_id)
+        ";
+
+        let mut statement = conn.prepare(query)?;
+
+        statement.bind((":tag_id", self.tag_id))?;
+        statement.bind((":playlist_id", self.playlist_id))?;
+
+        database::execute_statement(&mut statement)?;
+        self.playlist_tag_id = Some(database::last_id(conn)?);
+        Ok(())
+    }
+
+    fn exists(&mut self, conn: &sqlite::Connection) -> Result<bool, sqlite::Error> {
+        let query = "SELECT 
+        playlist_tag_id FROM playlist_tag
+
+        WHERE tag_id = :tag_id
+        AND playlist_id = :playlist_id
+
+        LIMIT 1
+        ";
+
+        let mut statement = conn.prepare(query)?;
+
+        statement.bind((":tag_id", self.tag_id))?;
+        statement.bind((":playlist_id", self.playlist_id))?;
+
+        if let Ok(State::Row) = statement.next() {
+            let song_id = statement.read::<i64, _>(0)?;
+            self.playlist_tag_id = Some(song_id);
+            return Ok(true);
+        }
+
+        Ok(false)
+    }
+
+    fn is_valid(&self) -> bool {
+        self.tag_id > 0 && self.playlist_id > 0
+    }
+}
+
+pub struct AlbumTag {
+    pub album_tag_id: Option<i64>,
+    pub album_id: i64,
+    pub tag_id: i64,
+}
+
+impl Store for AlbumTag {
+    fn insert(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        ensure_valid(self)?;
+
+        let query = "INSERT INTO album_tag
+        (tag_id, album_id)
+        VALUES 
+        (:tag_id, :album_id)
+        ";
+
+        let mut statement = conn.prepare(query)?;
+
+        statement.bind((":song_id", self.tag_id))?;
+        statement.bind((":album_id", self.album_id))?;
+
+        database::execute_statement(&mut statement)?;
+        self.album_tag_id = Some(database::last_id(conn)?);
+        Ok(())
+    }
+
+    fn exists(&mut self, conn: &sqlite::Connection) -> Result<bool, sqlite::Error> {
+        let query = "SELECT 
+        album_tag_id FROM album_tag
+
+        WHERE tag_id = :tag_id
+        AND album_id = :album_id
+
+        LIMIT 1
+        ";
+
+        let mut statement = conn.prepare(query)?;
+
+        statement.bind((":tag_id", self.tag_id))?;
+        statement.bind((":album_id", self.album_id))?;
+
+        if let Ok(State::Row) = statement.next() {
+            let song_id = statement.read::<i64, _>(0)?;
+            self.album_tag_id = Some(song_id);
+            return Ok(true);
+        }
+
+        Ok(false)
+    }
+
+    fn is_valid(&self) -> bool {
+        self.tag_id > 0 && self.album_id > 0
     }
 }
 
