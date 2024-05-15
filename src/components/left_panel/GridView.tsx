@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import Loading from '../Loading';
+import { MusicNote } from 'iconoir-react';
 
 export interface GridItem {
     id: number;
     title: string;
     extra_info: string;
-    image_url: string;
+    image_url?: string;
     onSelected: (id: number) => void;
 }
 
@@ -36,7 +37,17 @@ export default function GridView({ item_source, circles = false }: Props) {
                     className="item"
                     onClick={() => item.onSelected(item.id)}
                 >
-                    <img src={item.image_url} alt={`Image for ${item.title}`} />
+                    {item.image_url && (
+                        <img
+                            src={item.image_url}
+                            alt={`Image for ${item.title}`}
+                        />
+                    )}
+                    {!item.image_url && (
+                        <div className="img-placeholder">
+                            <MusicNote />
+                        </div>
+                    )}
                     <div className="title">{item.title}</div>
                     <div className="extra-info">{item.extra_info}</div>
                 </div>

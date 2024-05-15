@@ -1,6 +1,6 @@
 use crate::{
     database::ConnectionWrapper,
-    models::{Quality, Song},
+    models::{base_metadata::Song, Quality},
 };
 
 pub fn has_file(file_path: &str, db: &ConnectionWrapper) -> bool {

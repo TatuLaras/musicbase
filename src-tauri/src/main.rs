@@ -4,7 +4,11 @@
 use musicbase::{
     content_scanner::scan_for_new_content,
     database::ConnectionWrapper,
-    models::{Album, Artist, Playlist, Store},
+    models::{
+        base_metadata::{Album, Artist},
+        user_generated::Playlist,
+        Store,
+    },
     param::Order,
 };
 use tauri::AppHandle;

@@ -1,6 +1,9 @@
 use crate::{
     content_scanner::scan_for_new_content,
-    models::{Album, Artist, Quality, Song},
+    models::{
+        base_metadata::{Album, Artist, Song},
+        Quality,
+    },
     param::Order,
     test_utils::get_mock_db,
 };

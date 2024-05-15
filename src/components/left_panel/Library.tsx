@@ -2,7 +2,6 @@ import { convertFileSrc, invoke } from '@tauri-apps/api/tauri';
 import { LibraryView } from '../../types';
 import GridView, { GridItem } from './GridView';
 import { memo } from 'react';
-import Loading from '../Loading';
 
 type Props = {
     view: LibraryView;
@@ -12,12 +11,16 @@ async function getAlbums(): Promise<GridItem[]> {
     const result = (await invoke('get_all_albums')) as Album[];
 
     return result.map((album) => {
-        console.log(album);
+        const image_url =
+            album.cover_path && album.cover_path.length > 0
+                ? convertFileSrc(album.cover_path)
+                : undefined;
+
         return {
             id: album.album_id ?? 0,
             title: album.name,
             extra_info: album?.artist?.name ?? '',
-            image_url: convertFileSrc(album.cover_path ?? ''),
+            image_url,
             onSelected: function (id: number): void {
                 console.log(`Select ${id}`);
             },
@@ -27,15 +30,37 @@ async function getAlbums(): Promise<GridItem[]> {
 
 async function getArtists(): Promise<GridItem[]> {
     const result = (await invoke('get_all_artists')) as Artist[];
-
     return result.map((artist) => {
-        console.log(artist);
+        const image_url =
+            artist.artist_image_path && artist.artist_image_path.length > 0
+                ? convertFileSrc(artist.artist_image_path)
+                : undefined;
+
         return {
             id: artist.artist_id ?? 0,
             title: artist.name,
             extra_info: '',
-            //  TODO: Älä tee ?? '' vaan joku kunnon placeholder tilalle
-            image_url: convertFileSrc(artist.artist_image_path ?? ''),
+            image_url,
+            onSelected: function (id: number): void {
+                console.log(`Select artist ${id}`);
+            },
+        };
+    });
+}
+
+async function getPlaylists(): Promise<GridItem[]> {
+    const result = (await invoke('get_all_playlists')) as Playlist[];
+    return result.map((playlist) => {
+        const image_url =
+            playlist.cover_path && playlist.cover_path.length > 0
+                ? convertFileSrc(playlist.cover_path)
+                : undefined;
+
+        return {
+            id: playlist.playlist_id ?? 0,
+            title: playlist.name,
+            extra_info: playlist.tags.join(', '),
+            image_url,
             onSelected: function (id: number): void {
                 console.log(`Select artist ${id}`);
             },
@@ -44,11 +69,10 @@ async function getArtists(): Promise<GridItem[]> {
 }
 
 function Library({ view }: Props) {
-    console.log('rerender');
     const content: { [key: string]: JSX.Element } = {
         albums: <GridView item_source={getAlbums} />,
         artists: <GridView item_source={getArtists} circles={true} />,
-        playlists: <h1>Playlists</h1>,
+        playlists: <GridView item_source={getPlaylists} />,
         tags: <h1>Tags</h1>,
     };
 

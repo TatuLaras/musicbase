@@ -1,7 +1,11 @@
 use once_cell::sync::Lazy;
 
 use crate::{
-    models::{Album, Artist, Playlist, PlaylistSong, Quality, Song, Tag},
+    models::{
+        base_metadata::{Album, Artist, Song},
+        user_generated::{Playlist, PlaylistSong, Tag},
+        Quality,
+    },
     param::{asc, desc, eq, gt, gte, like, lt, search, Order},
     test_utils::get_mock_db,
 };
@@ -827,7 +831,7 @@ fn insert_and_retrieve_tag() {
         let db_playlist = &db_tags[i];
 
         assert_eq!(db_playlist.name, sample_tag.name);
-        assert_eq!(db_playlist.tag_id.unwrap() - 1, i.try_into().unwrap());
+        assert_eq!(db_playlist.tag_id.unwrap() - 1, i as i64);
     }
 }
 

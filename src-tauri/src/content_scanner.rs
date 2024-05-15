@@ -7,7 +7,10 @@ use crate::{
     database::ConnectionWrapper,
     fs_utils::{get_unique_path, mime_type_to_extension},
     library,
-    models::{err, Album, Artist, Quality, Song},
+    models::{
+        base_metadata::{Album, Artist, Song},
+        err, Quality,
+    },
     utils::IntoOption,
 };
 

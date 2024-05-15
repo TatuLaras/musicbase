@@ -18,11 +18,25 @@
     background-color: var(--color-bg-light-1);
 }
 
-.grid-view .item img {
+.grid-view .item img,
+.grid-view .item .img-placeholder {
     aspect-ratio: 1;
     width: 100%;
     object-fit: cover;
     border-radius: 0.25rem;
+}
+
+.grid-view .item .img-placeholder {
+    background-color: var(--color-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2em;
+    margin-bottom: 1rem;
+}
+
+.grid-view .item .img-placeholder * {
+    color: var(--color-bg-light);
 }
 
 .grid-view.circles .item img {
