@@ -1,0 +1,124 @@
+.album-view .top-portion {
+    display: flex;
+    margin: 1em;
+    margin-top: 3em;
+}
+
+.album-view .top-portion img,
+.album-view .top-portion .img-placeholder {
+    width: calc(25% + 4rem);
+    border-radius: 0.25rem;
+    background-color: var(--color-bg-1);
+}
+
+.album-view .top-portion img {
+    cursor: pointer;
+}
+
+.album-view .top-portion .img-placeholder * {
+    font-size: 2em;
+}
+
+.album-view .img-placeholder * {
+    color: var(--color-bg);
+}
+
+.album-view .top-portion .info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    margin-left: 2em;
+}
+
+.album-view .top-portion .info h1 {
+    margin: 0.2em 0;
+}
+
+.album-view .top-portion .info-item * {
+    color: var(--color-text-disabled);
+}
+
+.album-view .button-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 2em 1em;
+    margin-top: 2.5em;
+}
+
+.album-view .button-row .start {
+    display: flex;
+    gap: 1em;
+}
+
+.album-view .song-list {
+    margin: 1em;
+}
+
+.album-view .song-list .header,
+.album-view .song-list .song-item {
+    display: flex;
+    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 3em 2fr 1fr 5em 5em;
+}
+
+.album-view .song-list .header {
+    padding: 0.6em 0.2em;
+}
+
+.album-view .song-list .header * {
+    color: var(--color-text-disabled);
+    font-weight: 500;
+}
+
+.album-view .number {
+    text-align: center;
+    position: relative;
+}
+
+.album-view .number .n {
+    color: var(--color-text-disabled);
+}
+
+.album-view .song-item {
+    padding: 0.8em 0.2em;
+    border-radius: 0.25rem;
+    margin-top: 0.1em;
+    cursor: pointer;
+}
+
+.album-view .song-item .number .play {
+    visibility: hidden;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.8em;
+}
+
+.album-view .song-item:hover {
+    background-color: var(--color-bg-1);
+}
+
+.album-view .song-item:hover .play {
+    visibility: visible;
+}
+
+.album-view .song-item:hover .n {
+    visibility: hidden;
+}
+
+.album-view .song-item > * {
+    overflow: hidden;
+}
+
+.album-view .song-item .title {
+    white-space: nowrap;
+    font-weight: 500;
+}

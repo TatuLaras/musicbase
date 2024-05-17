@@ -1,5 +1,6 @@
 .grid-view {
     margin: 0.8em;
+    margin-top: 1.2em;
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(8em, 1fr));
     overflow-x: hidden;
@@ -27,19 +28,11 @@
 }
 
 .grid-view .item .img-placeholder {
-    background-color: var(--color-bg);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 2em;
     margin-bottom: 1rem;
 }
 
-.grid-view .item .img-placeholder * {
-    color: var(--color-bg-light);
-}
-
-.grid-view.circles .item img {
+.grid-view.circles .item img,
+.grid-view.circles .item .img-placeholder {
     border-radius: 50%;
     margin-bottom: 0.5em;
 }

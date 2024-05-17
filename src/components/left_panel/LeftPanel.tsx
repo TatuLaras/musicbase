@@ -4,8 +4,13 @@ import { clamp } from '../../utils';
 import { LibraryView, libraryViews } from '../../types';
 import BulletButtons from '../BulletButtons';
 import Library from './Library';
+import { MainViewState } from '../main_view/MainView';
 
-export default function LeftPanel() {
+type Props = {
+    onMainViewSelected: (state: MainViewState) => void;
+};
+
+export default function LeftPanel({ onMainViewSelected }: Props) {
     const minWidth = 400;
     const maxWidth = clamp(1000, minWidth, window.innerWidth - 100);
     const [dragging, setDragging] = useState(false);
@@ -67,13 +72,16 @@ export default function LeftPanel() {
                     <div className="icon">
                         <AlbumOpen />
                     </div>
-                    <div className="text">Music Library</div>
+                    <div className="text">Library</div>
                 </div>
                 <BulletButtons<LibraryView>
                     onViewSelected={(view) => setLibraryView(view)}
                     options={libraryViews}
                 />
-                <Library view={libraryView} />
+                <Library
+                    view={libraryView}
+                    onMainViewSelected={onMainViewSelected}
+                />
             </div>
             <div className="grabbable" onMouseDown={startDrag}></div>
         </div>

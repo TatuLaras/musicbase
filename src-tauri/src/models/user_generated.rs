@@ -8,7 +8,7 @@ use crate::{
     utils::option_as_slice,
 };
 
-use super::{ensure_valid, Store, StoreFull};
+use super::{ensure_valid, Retrieve, Store, StoreFull};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Playlist {
@@ -54,7 +54,9 @@ impl Store for Playlist {
     fn is_valid(&self) -> bool {
         self.name.len() > 0
     }
+}
 
+impl Retrieve for Playlist {
     fn get_by(
         conn: &sqlite::Connection,
         condition: Condition,
@@ -249,7 +251,9 @@ impl Store for Tag {
     fn is_valid(&self) -> bool {
         self.name.len() > 0
     }
+}
 
+impl Retrieve for Tag {
     fn get_by(
         conn: &sqlite::Connection,
         condition: Condition,

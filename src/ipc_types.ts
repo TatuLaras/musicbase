@@ -1,10 +1,10 @@
-interface Artist {
+export interface Artist {
     artist_id?: number;
     name: string;
     artist_image_path?: string;
 }
 
-interface Album {
+export interface Album {
     album_id?: number;
     name: string;
     artist?: Artist;
@@ -14,7 +14,7 @@ interface Album {
     total_discs?: number;
 }
 
-interface Song {
+export interface Song {
     song_id?: number;
     name: string;
     file_path: string;
@@ -27,11 +27,16 @@ interface Song {
     album?: Album;
 }
 
-interface Playlist {
+export interface Playlist {
     playlist_id?: number;
     name: string;
     desc: string;
     cover_path?: string;
     created?: string;
     tags: string[];
+}
+
+export interface Tag {
+    tag_id?: number;
+    name: string;
 }

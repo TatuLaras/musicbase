@@ -8,7 +8,7 @@ use crate::{
     utils::{self, option_as_slice, option_cast, IntoOption},
 };
 
-use super::{ensure_valid, Quality, Store, StoreFull};
+use super::{ensure_valid, Quality, Retrieve, Store, StoreFull};
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Artist {
@@ -56,7 +56,9 @@ impl Store for Artist {
     fn is_valid(&self) -> bool {
         self.name.len() > 0
     }
+}
 
+impl Retrieve for Artist {
     fn get_by(
         conn: &sqlite::Connection,
         condition: Condition,
@@ -75,6 +77,7 @@ impl Store for Artist {
 
             LEFT JOIN album
             ON album.artist_id = artist.artist_id
+            AND album.cover_path IS NOT NULL
 
             WHERE {}
 
@@ -188,7 +191,18 @@ impl Store for Album {
     fn is_valid(&self) -> bool {
         self.name.len() > 0
     }
+}
 
+impl StoreFull for Album {
+    fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        if let Some(artist) = &mut self.artist {
+            artist.insert(conn)?;
+        }
+        self.insert(conn)
+    }
+}
+
+impl Retrieve for Album {
     fn get_by(
         conn: &sqlite::Connection,
         condition: Condition,
@@ -242,15 +256,6 @@ impl Store for Album {
             albums.push(album);
         }
         Ok(albums)
-    }
-}
-
-impl StoreFull for Album {
-    fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
-        if let Some(artist) = &mut self.artist {
-            artist.insert(conn)?;
-        }
-        self.insert(conn)
     }
 }
 
@@ -336,7 +341,23 @@ impl Store for Song {
     fn is_valid(&self) -> bool {
         self.name.len() > 0 && self.file_path.len() > 0
     }
+}
 
+impl StoreFull for Song {
+    fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        if let Some(album) = &mut self.album {
+            album.insert_full(conn)?;
+        }
+
+        if let Some(artist) = &mut self.artist {
+            artist.insert(conn)?;
+        }
+
+        self.insert(conn)
+    }
+}
+
+impl Retrieve for Song {
     fn get_by(
         conn: &sqlite::Connection,
         condition: Condition,
@@ -429,19 +450,5 @@ impl Store for Song {
             songs.push(song);
         }
         Ok(songs)
-    }
-}
-
-impl StoreFull for Song {
-    fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
-        if let Some(album) = &mut self.album {
-            album.insert_full(conn)?;
-        }
-
-        if let Some(artist) = &mut self.artist {
-            artist.insert(conn)?;
-        }
-
-        self.insert(conn)
     }
 }

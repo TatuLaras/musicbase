@@ -1,7 +1,7 @@
 use sqlite::{Connection, State};
 
 use crate::{
-    models::{Store, StoreFull},
+    models::{Retrieve, Store, StoreFull},
     param::{Condition, Order},
 };
 
@@ -94,11 +94,11 @@ impl ConnectionWrapper {
         item.exists(&self.conn)
     }
 
-    pub fn get_all<T: Store>(&self, order: Order) -> Result<Vec<T>, sqlite::Error> {
+    pub fn get_all<T: Retrieve>(&self, order: Order) -> Result<Vec<T>, sqlite::Error> {
         T::get_all(&self.conn, order)
     }
 
-    pub fn get_by<T: Store>(
+    pub fn get_by<T: Retrieve>(
         &self,
         condition: Condition,
         order: Order,

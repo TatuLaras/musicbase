@@ -1,0 +1,16 @@
+.list-view {
+    margin: 0.8em;
+    margin-top: 1.2em;
+}
+
+.list-view .item {
+    padding: 0.5em 1em;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background 0.1s ease-out;
+}
+
+.list-view .item:hover {
+    background-color: var(--color-bg-light-1);
+}

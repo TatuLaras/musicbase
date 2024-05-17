@@ -12,17 +12,24 @@
         'Open Sans',
         'Helvetica Neue',
         sans-serif;
-    --color-bg: #141c1f;
+    --color-bg: hsl(196.36, 21.57%, 10%);
+    --color-bg-1: hsl(196.36, 21.57%, 20%);
+    --color-bg-2: hsl(196.36, 21.57%, 30%);
+    --color-bg-3: hsl(196.36, 21.57%, 40%);
     --color-bg-light: #2e3f45;
     --color-bg-light-1: hsl(195.65, 20%, 28%);
-    --color-bg-light-2: hsl(195.65, 20%, 34%);
-    --color-accent-primary: #aae1f0;
-    --color-text-disabled: hsl(195.65, 20%, 80%);
+    --color-bg-light-2: hsl(195.65, 20%, 38%);
+    --color-accent-primary: hsl(192.86, 70%, 80%);
+    --color-accent-primary-1: hsl(192.86, 70%, 86%);
+    --color-text-disabled: hsl(195.65, 20%, 70%);
 }
 
 #root {
     height: 100vh;
+    width: 100vw;
     background-color: var(--color-bg);
+    display: flex;
+    align-items: stretch;
 }
 
 * {
@@ -30,5 +37,88 @@
     -ms-user-select: none;
     -webkit-user-select: none;
     user-select: none;
+    color: white;
+}
+
+::placeholder {
+    color: var(--color-text-disabled);
+}
+
+.img-placeholder {
+    background-color: var(--color-bg);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2em;
+    aspect-ratio: 1;
+    border-radius: 0.25rem;
+}
+
+.img-placeholder * {
+    color: var(--color-bg-light);
+}
+
+button {
+    cursor: pointer;
+}
+
+button.btn {
+    transition: background 0.1s ease-out;
+}
+
+button.btn .text {
+    padding-top: 0.1em;
+}
+
+button.primary {
+    background-color: var(--color-accent-primary);
+    border: none;
+    display: flex;
+    align-items: center;
+    border-radius: 0.5rem;
+    padding: 0.6em 1.6em;
+    font-weight: 500;
+    gap: 0.8em;
+}
+
+button.primary * {
+    color: var(--color-bg);
+}
+
+button.primary:hover {
+    background-color: var(--color-accent-primary-1);
+}
+
+button.secondary {
+    background-color: var(--color-bg-1);
+    border: none;
+    display: flex;
+    align-items: center;
+    border-radius: 0.5rem;
+    padding: 0.6em 1.6em;
+    font-weight: 500;
+    gap: 0.8em;
+}
+
+button.secondary:hover {
+    background-color: var(--color-bg-2);
+}
+
+button.secondary * {
+    color: white;
+}
+
+button.icon-btn {
+    background: none;
+    border: none;
+    padding-top: 0.4em;
+}
+
+button.icon-btn * {
+    color: var(--color-text-disabled);
+    transition: color 0.1s ease-out;
+}
+
+button.icon-btn:hover * {
     color: white;
 }

@@ -40,7 +40,18 @@ pub trait Store {
     // validation
     fn is_valid(&self) -> bool;
 
-    // Returns a vector of all items of a given type
+    //  TODO: exists_by method, which works similarly to get_by but only returns if a row exists
+}
+
+pub trait StoreFull {
+    // Inserts the object and all contained objects into the db
+    // Fills in the id field similarly to insert of the trait Store
+    fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error>;
+}
+
+pub trait Retrieve {
+    // Returns a vector of all items of a given type.
+    // Defined in terms of get_by, no need to define this manually.
     fn get_all(conn: &sqlite::Connection, order: Order) -> Result<Vec<Self>, sqlite::Error>
     where
         Self: Sized,
@@ -55,18 +66,7 @@ pub trait Store {
         _order: Order,
     ) -> Result<Vec<Self>, sqlite::Error>
     where
-        Self: Sized,
-    {
-        Ok(Vec::new())
-    }
-
-    //  TODO: exists_by method, which works similarly to get_by but only returns if a row exists
-}
-
-pub trait StoreFull {
-    // Inserts the object and all contained objects into the db
-    // Fills in the id field similarly to insert of the trait Store
-    fn insert_full(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error>;
+        Self: Sized;
 }
 
 #[derive(Debug, Clone, PartialEq, Copy, Serialize)]

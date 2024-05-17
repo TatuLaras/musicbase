@@ -862,3 +862,22 @@ fn tag_exists() {
         })
         .expect("Exists check"));
 }
+
+#[test]
+fn album_songs() {
+    let db = get_mock_db();
+
+    for mut song in SAMPLE_SONGS.clone().into_iter() {
+        db.insert_full(&mut song).unwrap();
+    }
+
+    let res = db
+        .get_by::<Song>(eq("song.album_id", "1"), Order::Asc("track".to_string()))
+        .unwrap();
+
+    assert!(res.len() > 0);
+    assert_eq!(
+        res[0].album.clone().unwrap().name,
+        SAMPLE_ALBUMS[0].clone().name
+    );
+}

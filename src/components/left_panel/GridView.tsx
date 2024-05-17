@@ -1,57 +1,85 @@
 import { useEffect, useState } from 'react';
 import Loading from '../Loading';
 import { MusicNote } from 'iconoir-react';
+import { FilterState } from './Filters';
+import ImagePlaceholder from '../ImagePlaceholder';
 
 export interface GridItem {
     id: number;
     title: string;
-    extra_info: string;
-    image_url?: string;
+    extraInfo: string;
+    imageUrl?: string;
     onSelected: (id: number) => void;
 }
 
 type Props = {
-    item_source: () => Promise<GridItem[]>;
+    itemSource: () => Promise<GridItem[]>;
     circles?: boolean;
+    filterState?: FilterState;
 };
 
-export default function GridView({ item_source, circles = false }: Props) {
+function passesFilter(
+    filterState: FilterState | undefined,
+    gridItem: GridItem,
+): boolean {
+    if (!filterState) return true;
+
+    if (
+        !gridItem.title
+            .toLowerCase()
+            .includes(filterState.searchQuery.toLowerCase()) &&
+        !gridItem.extraInfo
+            .toLowerCase()
+            .includes(filterState.searchQuery.toLowerCase())
+    )
+        return false;
+
+    return true;
+}
+
+export default function GridView({
+    itemSource,
+    circles = false,
+    filterState = undefined,
+}: Props) {
+    //  TODO: Make custom hook to avoid repetition
     const [items, setItems] = useState<GridItem[]>([]);
     const [loading, setLoading] = useState(false);
+
     // Get grid items from the async function provided
     useEffect(() => {
         setLoading(true);
-        item_source().then((res) => {
+        itemSource().then((res) => {
             setItems(res);
             setLoading(false);
         });
-    }, [item_source]);
+    }, [itemSource]);
 
     return loading ? (
         <Loading />
     ) : (
         <div className={`grid-view ${circles ? 'circles' : ''}`}>
-            {items.map((item) => (
-                <div
-                    key={item.id}
-                    className="item"
-                    onClick={() => item.onSelected(item.id)}
-                >
-                    {item.image_url && (
-                        <img
-                            src={item.image_url}
-                            alt={`Image for ${item.title}`}
-                        />
-                    )}
-                    {!item.image_url && (
-                        <div className="img-placeholder">
-                            <MusicNote />
-                        </div>
-                    )}
-                    <div className="title">{item.title}</div>
-                    <div className="extra-info">{item.extra_info}</div>
-                </div>
-            ))}
+            {items
+                .filter((item) => passesFilter(filterState, item))
+                .map((item) => (
+                    <div
+                        key={item.id}
+                        className="item"
+                        onClick={() => item.onSelected(item.id)}
+                    >
+                        {item.imageUrl ? (
+                            <img
+                                src={item.imageUrl}
+                                alt={`Cover for ${item.title}`}
+                                draggable={false}
+                            />
+                        ) : (
+                            !item.imageUrl && <ImagePlaceholder />
+                        )}
+                        <div className="title">{item.title}</div>
+                        <div className="extra-info">{item.extraInfo}</div>
+                    </div>
+                ))}
         </div>
     );
 }

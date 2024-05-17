@@ -11,6 +11,10 @@ import './styles/panels.css';
 import './styles/widgets.css';
 import './styles/grid.css';
 import './styles/loading.css';
+import './styles/list.css';
+import './styles/filters.css';
+import './styles/main_view.css';
+import './styles/album.css';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <React.StrictMode>
