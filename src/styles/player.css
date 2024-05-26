@@ -1,0 +1,130 @@
+.player {
+    background-color: var(--color-bg-dark);
+    height: var(--player-height);
+    width: 100%;
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.player .buttons {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.8em;
+    margin-bottom: 0.1em;
+}
+
+.player .buttons button {
+    background: none;
+    border: none;
+    transition: opacity 0.1s ease-out;
+}
+
+.player .buttons button:hover {
+    opacity: 0.7;
+}
+
+.player .buttons .play {
+    font-size: 1.4em;
+}
+
+.player .buttons .repeat {
+    font-size: 0.8em;
+    position: relative;
+}
+
+.player .buttons .shuffle {
+    font-size: 0.7em;
+    position: relative;
+}
+
+.player .buttons .shuffle::before,
+.player .buttons .repeat::before {
+    content: '';
+    display: block;
+    position: absolute;
+    width: 2rem;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    left: -0.2rem;
+    top: -0.35rem;
+    z-index: -1;
+}
+
+.player .buttons .repeat::before {
+    left: -0.1rem;
+    top: -0.3rem;
+}
+
+.player .buttons .shuffle.selected *,
+.player .buttons .repeat.selected * {
+    color: var(--color-accent-primary-sat);
+}
+
+.player .buttons .shuffle.selected::before,
+.player .buttons .repeat.selected::before {
+    background-color: var(--color-bg-light);
+}
+
+.player .progress-bar {
+    width: 40em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.player .progress-bar .time-number {
+    width: 3.5rem;
+    text-align: center;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.player .progress-bar .bar {
+    flex: 1;
+    padding: 0.5em 0;
+    cursor: pointer;
+}
+
+.player .progress-bar .bar .outer {
+    --bar-height: 0.4em;
+    background-color: gray;
+    height: var(--bar-height);
+    border-radius: var(--bar-height);
+}
+
+.player .progress-bar .inner {
+    background-color: white;
+    height: 100%;
+    width: var(--progress);
+    position: relative;
+    border-radius: var(--bar-height);
+    transition: background 0.1s ease-out;
+}
+
+.player .progress-bar .bar:hover .inner,
+.player .progress-bar.dragged .inner {
+    background-color: var(--color-accent-primary-sat);
+}
+
+.player .progress-bar .handle {
+    --handle-width: 0.8em;
+    --difference: calc(var(--handle-width) - var(--bar-height));
+    border-radius: 50%;
+    height: var(--handle-width);
+    aspect-ratio: 1;
+    background-color: white;
+    position: absolute;
+    right: calc(var(--handle-width) / -2);
+    top: calc(var(--difference) / -2);
+    opacity: 0;
+}
+
+.player .progress-bar.dragged .handle,
+.player .progress-bar .bar:hover .handle {
+    opacity: 1;
+}

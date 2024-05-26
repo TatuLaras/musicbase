@@ -10,8 +10,8 @@ export async function sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export function formatSongLength(s: number | undefined) {
-    if(!s) return '';
+export function formatTime(s: number | undefined) {
+    if (s === undefined) return '';
     const seconds = Math.floor(s);
-    return `${ Math.floor(s / 60) }:${ ( seconds % 60 ).toString().padStart(2, '0')}`;
+    return `${Math.floor(s / 60)}:${(seconds % 60).toString().padStart(2, '0')}`;
 }

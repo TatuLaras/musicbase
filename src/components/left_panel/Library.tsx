@@ -1,7 +1,7 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/tauri';
 import { LibraryView } from '../../types';
 import GridView, { GridItem } from './GridView';
-import { memo, useEffect, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import ListView, { ListItem } from './ListView';
 import Filters, { FilterState } from './Filters';
 import { Album, Artist, Playlist, Tag } from '../../ipc_types';
@@ -98,38 +98,49 @@ function Library({ view, onMainViewSelected }: Props) {
         });
     }
 
-    const content: { [key: string]: JSX.Element } = {
-        albums: (
-            <>
-                <Filters setFilterState={setFilterState} key={0} />
-                <GridView itemSource={getAlbums} filterState={filterState} />
-            </>
-        ),
-        artists: (
-            <>
-                <Filters setFilterState={setFilterState} key={1} />
-                <GridView
-                    itemSource={getArtists}
-                    circles={true}
-                    filterState={filterState}
-                />
-            </>
-        ),
-        playlists: (
-            <>
-                <Filters setFilterState={setFilterState} key={2} />
-                <GridView itemSource={getPlaylists} filterState={filterState} />
-            </>
-        ),
-        tags: (
-            <>
-                <Filters setFilterState={setFilterState} key={3} />
-                <ListView item_source={getTags} filterState={filterState} />
-            </>
-        ),
-    };
+    //  NOTE: Add state to the dependency array if you want the components to rerender according to them.
+    //  Passing them as props is not enough.
+    const content = useMemo(() => {
+        return {
+            albums: (
+                <>
+                    <Filters setFilterState={setFilterState} key={0} />
+                    <GridView
+                        itemSource={getAlbums}
+                        filterState={filterState}
+                    />
+                </>
+            ),
+            artists: (
+                <>
+                    <Filters setFilterState={setFilterState} key={1} />
+                    <GridView
+                        itemSource={getArtists}
+                        circles={true}
+                        filterState={filterState}
+                    />
+                </>
+            ),
+            playlists: (
+                <>
+                    <Filters setFilterState={setFilterState} key={2} />
+
+                    <GridView
+                        itemSource={getPlaylists}
+                        filterState={filterState}
+                    />
+                </>
+            ),
+            tags: (
+                <>
+                    <Filters setFilterState={setFilterState} key={3} />
+                    <ListView item_source={getTags} filterState={filterState} />
+                </>
+            ),
+        };
+    }, [filterState]);
 
     return content[view] ?? <></>;
 }
 
-export default memo(Library);
+export default Library;

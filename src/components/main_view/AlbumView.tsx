@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { Artist, Song } from '../../ipc_types';
 import Loading from '../Loading';
 import ImagePlaceholder from '../ImagePlaceholder';
-import { MoreHoriz, Play, PlaySolid, Shuffle } from 'iconoir-react';
+import { MoreHoriz, PlaySolid, Shuffle } from 'iconoir-react';
 import Button from '../Button';
-import { formatSongLength } from '../../utils';
+import { formatTime } from '../../utils';
 
 export interface AlbumViewData {
     type: 'Album' | 'Playlist';
@@ -22,6 +22,7 @@ type Props = {
 export default function AlbumView({ itemSource }: Props) {
     const [item, setItem] = useState<AlbumViewData | null>(null);
     const [loading, setLoading] = useState(false);
+    const [viewAlbumArt, setViewAlbumArt] = useState(false);
 
     // Get grid items from the async function provided
     useEffect(() => {
@@ -37,12 +38,28 @@ export default function AlbumView({ itemSource }: Props) {
     if (!loading && item)
         content = (
             <div className="album-view">
+                <div
+                    className={`cover-full ${viewAlbumArt ? 'show' : ''}`}
+                    onClick={() => setViewAlbumArt(false)}
+                >
+                    {item.cover_path && (
+                        <img
+                            src={item.cover_path}
+                            alt={`Cover for ${item.title}`}
+                            draggable={false}
+                        />
+                    )}
+                </div>
                 <div className="top-portion">
                     {item.cover_path ? (
                         <img
                             src={item.cover_path}
                             alt={`Cover for ${item.title}`}
                             draggable={false}
+                            onClick={() => {
+                                console.log('cover click');
+                                setViewAlbumArt(true);
+                            }}
                         />
                     ) : (
                         <ImagePlaceholder />
@@ -69,11 +86,11 @@ export default function AlbumView({ itemSource }: Props) {
                             <Shuffle />
                         </Button>
                     </div>
-                <div className="end">
-                    <button className="icon-btn">
-                        <MoreHoriz />
-                    </button>
-                </div>
+                    <div className="end">
+                        <button className="icon-btn">
+                            <MoreHoriz />
+                        </button>
+                    </div>
                 </div>
                 <div className="song-list">
                     <div className="header">
@@ -95,7 +112,7 @@ export default function AlbumView({ itemSource }: Props) {
                                 {song.artist?.name ?? 'Unknown'}
                             </div>
                             <div className="length">
-                                {formatSongLength(song.duration_s)}
+                                {formatTime(song.duration_s)}
                             </div>
                             <div className="buttons"></div>
                         </div>

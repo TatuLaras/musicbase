@@ -76,11 +76,14 @@ fn get_album_songs(album_id: i64) -> Vec<Song> {
     )
 }
 
+//  NOTE: Could run in a thread, seems unsafe though with database locking
 #[tauri::command]
 fn scan(app_handle: AppHandle) {
     let db = get_db();
+
     let Some(data_dir) = app_handle.path_resolver().app_data_dir() else { return; };
     let Some(data_dir) = data_dir.to_str() else { return; };
+
     if let Err(error) = scan_for_new_content("/home/tatu/Music/", &db, Some(data_dir)) {
         println!(
             "Error in command scan: {}",

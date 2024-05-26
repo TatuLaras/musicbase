@@ -13,6 +13,7 @@
     border-radius: 0.5em;
     transition: background 0.1s ease-out;
     cursor: pointer;
+    word-wrap: break-word;
 }
 
 .grid-view .item:hover {

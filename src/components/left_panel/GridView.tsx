@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import Loading from '../Loading';
-import { MusicNote } from 'iconoir-react';
 import { FilterState } from './Filters';
 import ImagePlaceholder from '../ImagePlaceholder';
 
@@ -83,3 +82,4 @@ export default function GridView({
         </div>
     );
 }
+

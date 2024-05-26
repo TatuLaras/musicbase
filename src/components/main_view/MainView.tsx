@@ -2,7 +2,6 @@ import { invoke } from '@tauri-apps/api';
 import { MainViewType } from '../../types';
 import AlbumView, { AlbumViewData } from './AlbumView';
 import { Album, Song } from '../../ipc_types';
-import { sleep } from '../../utils';
 import { convertFileSrc } from '@tauri-apps/api/tauri';
 
 export interface MainViewState {

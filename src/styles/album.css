@@ -1,7 +1,12 @@
+.album-view {
+    overflow-y: auto;
+}
+
 .album-view .top-portion {
     display: flex;
     margin: 1em;
     margin-top: 3em;
+    margin-left: 1.5em;
 }
 
 .album-view .top-portion img,
@@ -43,7 +48,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 2em 1em;
+    margin: 2em 1.5em;
     margin-top: 2.5em;
 }
 
@@ -121,4 +126,34 @@
 .album-view .song-item .title {
     white-space: nowrap;
     font-weight: 500;
+}
+
+.album-view .song-item .artist {
+    white-space: nowrap;
+}
+
+.album-view .cover-full {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 99;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease-out;
+}
+
+.album-view .cover-full.show {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.album-view .cover-full img {
+    height: calc(100% - 4em);
 }
