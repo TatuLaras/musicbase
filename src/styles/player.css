@@ -5,12 +5,24 @@
     position: relative;
     z-index: 3;
     display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.player .side {
+    width: 20rem;
+}
+
+.player .controls {
+    flex: 1;
+    display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
 }
 
-.player .buttons {
+.player .controls .buttons {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -18,86 +30,91 @@
     margin-bottom: 0.1em;
 }
 
-.player .buttons button {
+.player .controls .buttons button {
     background: none;
     border: none;
     transition: opacity 0.1s ease-out;
 }
 
-.player .buttons button:hover {
+.player .controls .buttons button:hover {
     opacity: 0.7;
 }
 
-.player .buttons .play {
+.player .controls .buttons .play {
     font-size: 1.4em;
 }
 
-.player .buttons .repeat {
+.player .controls .buttons .repeat {
     font-size: 0.8em;
     position: relative;
 }
 
-.player .buttons .shuffle {
+.player .controls .buttons .shuffle {
     font-size: 0.7em;
     position: relative;
 }
 
-.player .buttons .shuffle::before,
-.player .buttons .repeat::before {
+.player .controls .buttons .shuffle::before,
+.player .controls .buttons .repeat::before {
     content: '';
     display: block;
     position: absolute;
     width: 2rem;
     aspect-ratio: 1;
     border-radius: 50%;
-    left: -0.2rem;
+    left: -0.1rem;
     top: -0.35rem;
     z-index: -1;
 }
 
-.player .buttons .repeat::before {
+.player .controls .buttons .repeat::before {
+    left: 0 !important;
+}
+
+.player .controls .buttons .repeat::before {
     left: -0.1rem;
     top: -0.3rem;
 }
 
-.player .buttons .shuffle.selected *,
-.player .buttons .repeat.selected * {
+.player .controls .buttons .shuffle.selected *,
+.player .controls .buttons .repeat.selected * {
     color: var(--color-accent-primary-sat);
 }
 
-.player .buttons .shuffle.selected::before,
-.player .buttons .repeat.selected::before {
+.player .controls .buttons .shuffle.selected::before,
+.player .controls .buttons .repeat.selected::before {
     background-color: var(--color-bg-light);
 }
 
-.player .progress-bar {
-    width: 40em;
+.player .controls .progress-bar {
+    width: 100%;
+    max-width: 40rem;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-.player .progress-bar .time-number {
+.player .controls .progress-bar .time-number {
     width: 3.5rem;
     text-align: center;
     font-size: 0.9em;
     opacity: 0.8;
 }
 
-.player .progress-bar .bar {
+.player .controls .progress-bar .bar {
     flex: 1;
     padding: 0.5em 0;
     cursor: pointer;
 }
 
-.player .progress-bar .bar .outer {
+.player .controls .progress-bar .bar .outer {
     --bar-height: 0.4em;
     background-color: gray;
     height: var(--bar-height);
     border-radius: var(--bar-height);
 }
 
-.player .progress-bar .inner {
+.player .controls .progress-bar .inner {
     background-color: white;
     height: 100%;
     width: var(--progress);
@@ -106,12 +123,12 @@
     transition: background 0.1s ease-out;
 }
 
-.player .progress-bar .bar:hover .inner,
-.player .progress-bar.dragged .inner {
+.player .controls .progress-bar .bar:hover .inner,
+.player .controls .progress-bar.dragged .inner {
     background-color: var(--color-accent-primary-sat);
 }
 
-.player .progress-bar .handle {
+.player .controls .progress-bar .handle {
     --handle-width: 0.8em;
     --difference: calc(var(--handle-width) - var(--bar-height));
     border-radius: 50%;
@@ -124,7 +141,41 @@
     opacity: 0;
 }
 
-.player .progress-bar.dragged .handle,
-.player .progress-bar .bar:hover .handle {
+.player .controls .progress-bar.dragged .handle,
+.player .controls .progress-bar .bar:hover .handle {
     opacity: 1;
+}
+
+.player .current-song {
+    display: flex;
+    align-items: center;
+    padding: 0.8rem;
+    padding-right: 0;
+    font-size: 0.9rem;
+}
+
+.player .current-song * {
+    white-space: nowrap;
+}
+
+.player .current-song img {
+    height: calc(var(--player-height) * 0.7);
+}
+
+.player .current-song .details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding-left: 1rem;
+}
+
+.player .current-song .title-row {
+}
+
+.player .current-song .title {
+    font-weight: 500;
+}
+
+.player .current-song .artist {
+    opacity: 0.8;
 }
