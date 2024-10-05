@@ -24,6 +24,8 @@
     --color-accent-primary-sat: hsl(192, 100%, 75%);
     --color-text-disabled: hsl(195, 20%, 70%);
     --color-bg-dark: hsl(195, 20%, 5%);
+    --color-bg-very-dark: #040607;
+    --color-accent-very-dark: #1a272d;
     --player-height: 6em;
 }
 
@@ -75,6 +77,7 @@ body {
     font-size: 2em;
     aspect-ratio: 1;
     border-radius: 0.25rem;
+    overflow: hidden;
 }
 
 .img-placeholder * {
@@ -100,7 +103,7 @@ button.primary {
     align-items: center;
     border-radius: 0.5rem;
     padding: 0.6em 1.6em;
-    font-weight: 500;
+    font-weight: 600;
     gap: 0.8em;
 }
 

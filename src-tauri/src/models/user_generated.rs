@@ -397,6 +397,87 @@ impl Store for AlbumTag {
     }
 }
 
-pub struct Settings {
-    pub directories: Vec<String>,
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct Directory {
+    pub directory_id: Option<i64>,
+    pub path: String,
+}
+
+impl Store for Directory {
+    fn insert(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        ensure_valid(self)?;
+
+        let query = "INSERT INTO directory
+        (path)
+        VALUES 
+        (:path)
+        ";
+
+        let mut statement = conn.prepare(query)?;
+
+        statement.bind((":path", &self.path[..]))?;
+
+        database::execute_statement(&mut statement)?;
+        self.directory_id = Some(database::last_id(conn)?);
+        Ok(())
+    }
+
+    fn exists(&mut self, conn: &sqlite::Connection) -> Result<bool, sqlite::Error> {
+        let query = "SELECT 
+        directory_id 
+        FROM directory
+        WHERE path = :path
+        LIMIT 1
+        ";
+
+        let mut statement = conn.prepare(query)?;
+
+        statement.bind((":path", &self.path[..]))?;
+
+        if let Ok(State::Row) = statement.next() {
+            let directory_id = statement.read::<i64, _>(0)?;
+            self.directory_id = Some(directory_id);
+            return Ok(true);
+        }
+
+        Ok(false)
+    }
+
+    fn is_valid(&self) -> bool {
+        self.path.len() > 0
+    }
+}
+
+impl Retrieve for Directory {
+    fn get_by(
+        conn: &sqlite::Connection,
+        condition: Condition,
+        order: Order,
+    ) -> Result<Vec<Self>, sqlite::Error>
+    where
+        Self: Sized,
+    {
+        let query = format!(
+            "SELECT directory_id, path
+            FROM directory
+
+            WHERE {}
+            ORDER BY {}
+            ",
+            condition.as_query(Condition::None),
+            order.as_query(asc("directory.directory_id")),
+        );
+        let mut directories: Vec<Directory> = Vec::new();
+
+        let mut statement = conn.prepare(query)?;
+
+        while let Ok(State::Row) = statement.next() {
+            let directory = Directory {
+                directory_id: Some(statement.read::<i64, _>("directory_id")?),
+                path: statement.read::<String, _>("path")?,
+            };
+            directories.push(directory);
+        }
+        Ok(directories)
+    }
 }

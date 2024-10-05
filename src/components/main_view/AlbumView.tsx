@@ -17,44 +17,51 @@ export interface AlbumViewData {
 
 type Props = {
     itemSource: () => Promise<AlbumViewData | null>;
+    onPlay: (queue: Song[], queuePos: number) => void;
+    onQueue: (songs: Song[], start: boolean) => void;
 };
 
-export default function AlbumView({ itemSource }: Props) {
-    const [item, setItem] = useState<AlbumViewData | null>(null);
+export default function AlbumView({ itemSource, onPlay, onQueue }: Props) {
+    const [album, setAlbum] = useState<AlbumViewData | null>(null);
     const [loading, setLoading] = useState(false);
     const [viewAlbumArt, setViewAlbumArt] = useState(false);
 
-    // Get grid items from the async function provided
+    // Get items from the async function provided
     useEffect(() => {
         setLoading(true);
         itemSource().then((res) => {
-            setItem(res);
+            setAlbum(res);
             setLoading(false);
         });
     }, [itemSource]);
 
     let content: JSX.Element | null = <Loading />;
 
-    if (!loading && item)
+    // Construct queue from the clicked song until the end of the album
+    function play(index: number) {
+        if (album?.songs) onPlay(album.songs, index);
+    }
+
+    if (!loading && album)
         content = (
             <div className="album-view">
                 <div
                     className={`cover-full ${viewAlbumArt ? 'show' : ''}`}
                     onClick={() => setViewAlbumArt(false)}
                 >
-                    {item.cover_path && (
+                    {album.cover_path && (
                         <img
-                            src={item.cover_path}
-                            alt={`Cover for ${item.title}`}
+                            src={album.cover_path}
+                            alt={`Cover for ${album.title}`}
                             draggable={false}
                         />
                     )}
                 </div>
                 <div className="top-portion">
-                    {item.cover_path ? (
+                    {album.cover_path ? (
                         <img
-                            src={item.cover_path}
-                            alt={`Cover for ${item.title}`}
+                            src={album.cover_path}
+                            alt={`Cover for ${album.title}`}
                             draggable={false}
                             onClick={() => {
                                 console.log('cover click');
@@ -65,10 +72,10 @@ export default function AlbumView({ itemSource }: Props) {
                         <ImagePlaceholder />
                     )}
                     <div className="info">
-                        <div className="type">{item.type}</div>
-                        <h1>{item.title}</h1>
+                        <div className="type">{album.type}</div>
+                        <h1>{album.title}</h1>
                         <div className="extra-info">
-                            {item.extraInfo.map((info, i) => (
+                            {album.extraInfo.map((info, i) => (
                                 <div className="info-item" key={i}>
                                     <div className="circle"></div>
                                     <div className="text">{info}</div>
@@ -79,10 +86,14 @@ export default function AlbumView({ itemSource }: Props) {
                 </div>
                 <div className="button-row">
                     <div className="start">
-                        <Button primary={true} text="Play">
+                        <Button
+                            primary={true}
+                            text="Play"
+                            onClick={() => play(0)}
+                        >
                             <PlaySolid />
                         </Button>
-                        <Button text="Shuffle">
+                        <Button text="Shuffle" onClick={() => play(0)}>
                             <Shuffle />
                         </Button>
                     </div>
@@ -99,8 +110,12 @@ export default function AlbumView({ itemSource }: Props) {
                         <div className="artist">ARTIST</div>
                         <div className="length">LENGTH</div>
                     </div>
-                    {item.songs.map((song, i) => (
-                        <div className="song-item" key={song.song_id}>
+                    {album.songs.map((song, i) => (
+                        <div
+                            className="song-item"
+                            key={song.song_id}
+                            onClick={() => play(i)}
+                        >
                             <div className="number">
                                 <div className="n">{i + 1}</div>
                                 <div className="play">

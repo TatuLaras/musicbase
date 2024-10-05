@@ -63,7 +63,7 @@ export default function ProgressBar({
     }, [dragging]);
 
     const time = tempTime !== undefined ? tempTime : elapsedTime;
-    const progress = `${(time / totalTime) * 100}%`;
+    const progress = `${Math.min(time / totalTime, 1) * 100}%`;
 
     return (
         <div

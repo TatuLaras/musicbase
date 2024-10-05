@@ -77,6 +77,11 @@ impl ConnectionWrapper {
             UNIQUE (album_id, tag_id)
         );
 
+        CREATE TABLE directory (
+            directory_id INTEGER PRIMARY KEY,
+            path TEXT NOT NULL UNIQUE
+        );
+
         ";
 
         self.conn.execute(query)

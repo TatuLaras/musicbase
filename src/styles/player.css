@@ -20,6 +20,8 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    position: relative;
+    z-index: 4;
 }
 
 .player .controls .buttons {
@@ -30,14 +32,16 @@
     margin-bottom: 0.1em;
 }
 
+.player .options button,
 .player .controls .buttons button {
     background: none;
     border: none;
     transition: opacity 0.1s ease-out;
 }
 
+.player .options button:hover,
 .player .controls .buttons button:hover {
-    opacity: 0.7;
+    opacity: 0.8;
 }
 
 .player .controls .buttons .play {
@@ -160,6 +164,15 @@
 
 .player .current-song img {
     height: calc(var(--player-height) * 0.7);
+    border-radius: 0.125rem;
+}
+
+.player .current-song .img-placeholder {
+    height: calc(var(--player-height) * 0.7);
+    font-size: 1rem;
+    border-radius: 0.125rem;
+    background-color: var(--color-bg-light);
+    color: var(--color-bg-darker) !important;
 }
 
 .player .current-song .details {
@@ -169,13 +182,132 @@
     padding-left: 1rem;
 }
 
-.player .current-song .title-row {
-}
-
 .player .current-song .title {
     font-weight: 500;
 }
 
 .player .current-song .artist {
     opacity: 0.8;
+}
+
+.player .options {
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 1em;
+    padding: 0.8em;
+    padding-right: 1.2em;
+    padding-left: 0;
+}
+
+.player .options button {
+    opacity: 0.9;
+}
+
+.queue-panel {
+    position: fixed;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    background-color: var(--color-bg-very-dark);
+    z-index: 3;
+    transform: translateX(50em);
+    transition: transform 0.2s ease-out;
+}
+
+.queue-panel.enable {
+    transform: translateX(0);
+}
+
+.queue-panel .content {
+    height: calc(100vh - var(--player-height));
+    overflow-y: auto;
+}
+
+.queue-panel .song:first-child {
+    margin-top: 0.4em;
+}
+
+.queue-panel .song {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    padding: 0.7em 3em 0.7em 1.2em;
+    border-radius: 0.25rem;
+    cursor: pointer;
+}
+
+.queue-panel .song .cover {
+    background-image: var(--img);
+    background-size: cover;
+    background-color: red;
+    height: 3em;
+    aspect-ratio: 1;
+    border-radius: 0.125rem;
+    position: relative;
+}
+
+.queue-panel .song .icon {
+    opacity: 0;
+    transition: opacity 0.1s ease-out;
+    background-color: rgba(0, 0, 0, 0.6);
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.queue-panel .song .icon .inner {
+    width: fit-content;
+}
+
+.queue-panel .song:hover .icon {
+    opacity: 1;
+}
+.queue-panel .song .drag {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: stretch;
+    justify-content: center;
+}
+
+.queue-panel .song .drag div {
+    height: 3px;
+    border-radius: 1.5px;
+    width: 24px;
+    background-color: var(--color-accent-very-dark);
+}
+
+.queue-panel .song:hover {
+    background-color: var(--color-bg-dark);
+}
+
+.queue-panel .song img {
+    aspect-ratio: 1 !important;
+    height: 3em;
+    border-radius: 0.125rem;
+}
+
+.queue-panel .song .name {
+    font-size: 0.93rem;
+    color: white;
+    /*  TODO: vieritys */
+    max-width: 30rem;
+    text-wrap: nowrap;
+    overflow: hidden;
+}
+
+.queue-panel .song .artist {
+    font-size: 0.93rem;
+    opacity: 0.8;
+}
+
+.queue-panel .song .info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4em;
 }

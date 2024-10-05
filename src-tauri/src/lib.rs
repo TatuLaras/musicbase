@@ -1,3 +1,4 @@
+pub mod audio_playback;
 pub mod content_scanner;
 pub mod database;
 pub mod fs_utils;

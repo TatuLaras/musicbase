@@ -1,0 +1,4 @@
+
+IDEAT:
+- Eq, profiileja siihen ja per albumi / soittolista periaatteella voi olla eri profiileja
+- Suosituksia kirjaston perusteella

@@ -3,6 +3,8 @@ import { MainViewType } from '../../types';
 import AlbumView, { AlbumViewData } from './AlbumView';
 import { Album, Song } from '../../ipc_types';
 import { convertFileSrc } from '@tauri-apps/api/tauri';
+import SettingsView from './SettingsView';
+import { memo } from 'react';
 
 export interface MainViewState {
     mainViewType: MainViewType;
@@ -11,12 +13,18 @@ export interface MainViewState {
 
 type Props = {
     mainViewState: MainViewState | null;
+    onPlay: (queue: Song[], queuePos: number) => void;
+    onQueue: (songs: Song[], start: boolean) => void;
 };
 
-export default function MainView({ mainViewState }: Props) {
+function MainView({ mainViewState, onPlay, onQueue }: Props) {
     const content: { [key: string]: JSX.Element } = {
         album: mainViewState?.id ? (
-            <AlbumView itemSource={getAlbum(mainViewState?.id)} />
+            <AlbumView
+                itemSource={getAlbum(mainViewState?.id)}
+                onPlay={onPlay}
+                onQueue={onQueue}
+            />
         ) : (
             <></>
         ),
@@ -24,7 +32,9 @@ export default function MainView({ mainViewState }: Props) {
         playlistsByTag: <></>,
         albumsByTag: <></>,
         albumsByArtist: <></>,
+        settings: <SettingsView />,
     };
+    console.log(mainViewState?.mainViewType);
 
     // All the getSomething functions return an another function,
     // this will make it so we don't have to pass the id as a prop, we
@@ -35,7 +45,9 @@ export default function MainView({ mainViewState }: Props) {
                 | Album
                 | undefined;
 
-            const albumSongs = (await invoke('get_album_songs', {albumId: id})) as Song[];
+            const albumSongs = (await invoke('get_album_songs', {
+                albumId: id,
+            })) as Song[];
 
             const coverPath =
                 album?.cover_path && album.cover_path.length > 0
@@ -56,11 +68,12 @@ export default function MainView({ mainViewState }: Props) {
     }
 
     return (
-        mainViewState &&
-        mainViewState.id && (
+        mainViewState && (
             <div id="main-view">
                 {content[mainViewState.mainViewType] ?? <></>}
             </div>
         )
     );
 }
+
+export default memo(MainView);

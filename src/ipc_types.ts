@@ -40,3 +40,13 @@ export interface Tag {
     tag_id?: number;
     name: string;
 }
+
+export interface Directory {
+    directory_id?: number;
+    path: string;
+}
+
+export interface Duration {
+    secs: number;
+    nanos: number;
+}

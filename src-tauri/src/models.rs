@@ -26,7 +26,6 @@ pub trait Store {
     // Inserts the object into the database
     //
     // Takes a mutable reference to the object and fills in the id field to the newly inserted id
-    // Not the cleanest approach, but makes the code way more concise in certain situations.
     fn insert(&mut self, conn: &sqlite::Connection) -> Result<(), sqlite::Error>;
 
     // Returns true if an "overlapping" data point is found in the database, fills in id field of
