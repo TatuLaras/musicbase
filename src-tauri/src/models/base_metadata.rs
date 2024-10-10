@@ -56,6 +56,19 @@ impl Store for Artist {
     fn is_valid(&self) -> bool {
         self.name.len() > 0
     }
+
+    fn delete(&self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        let Some(artist_id) = self.artist_id else { return Ok(()); };
+
+        let query = "DELETE FROM artist WHERE artist_id = :artist_id";
+        let mut statement = conn.prepare(query)?;
+
+        statement.bind((":artist_id", artist_id))?;
+
+        database::execute_statement(&mut statement)?;
+
+        Ok(())
+    }
 }
 
 impl Retrieve for Artist {
@@ -388,6 +401,9 @@ impl Retrieve for Song {
 
             LEFT JOIN artist AS album_artist
             ON album_artist.artist_id = album.artist_id
+
+            LEFT JOIN playlist_song
+            ON playlist_song.song_id = song.song_id
 
             WHERE {}
             ORDER BY {}

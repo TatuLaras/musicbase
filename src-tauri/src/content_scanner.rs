@@ -1,12 +1,11 @@
-use std::{fs, io::Write};
-
 use audiotags::{Picture, Tag};
 use walkdir::WalkDir;
 
 use crate::{
+    content_library,
     database::ConnectionWrapper,
-    fs_utils::{get_unique_path, mime_type_to_extension},
-    library,
+    fs_utils::mime_type_to_extension,
+    images::save_cover,
     models::{
         base_metadata::{Album, Artist, Song},
         err, Quality,
@@ -23,7 +22,7 @@ pub struct MetadataResult<'a> {
 pub fn scan_for_new_content(
     dir: &str,
     db: &ConnectionWrapper,
-    image_cache_dir: Option<&str>,
+    image_cache_dir: &str,
 ) -> Result<(), sqlite::Error> {
     // Loop over files in a directory recursively
     for entry in WalkDir::new(dir).into_iter() {
@@ -31,7 +30,7 @@ pub fn scan_for_new_content(
         let path = entry.path().to_string_lossy();
 
         // Skip over non-audio files and already existing ones
-        if !is_audio(&path) || library::has_file(&path, db) {
+        if !is_audio(&path) || content_library::has_file(&path, db) {
             continue;
         }
 
@@ -57,7 +56,7 @@ fn is_audio(file_path: &str) -> bool {
 fn parse_and_save_metadata(
     file_path: &str,
     db: &ConnectionWrapper,
-    image_cache_dir: Option<&str>,
+    image_cache_dir: &str,
 ) -> Result<(), sqlite::Error> {
     // Get metadata tags
     let Ok(tag) = Tag::new().read_from_path(file_path) else {
@@ -122,7 +121,13 @@ fn parse_and_save_metadata(
     // Save cover art into app data directory
     if let Some(album) = &mut song.album {
         if !db.exists(album)? {
-            album.cover_path = save_cover(tag.album_cover(), image_cache_dir);
+            if let Some(image) = tag.album_cover() {
+                album.cover_path = save_cover(
+                    image.data,
+                    mime_type_to_extension(image.mime_type),
+                    image_cache_dir,
+                );
+            }
         }
     }
 
@@ -134,37 +139,4 @@ fn parse_and_save_metadata(
 // "Flatten" a string option into a string
 fn get_str(value: Option<&str>) -> String {
     value.unwrap_or("Unknown").to_string()
-}
-
-// Write an image into the app data directory
-fn save_image<'a>(picture: Picture, image_cache_dir: &str) -> Result<String, String> {
-    println!("save image");
-    // Create a path that does not exist already
-    let extension = mime_type_to_extension(picture.mime_type);
-    let path = get_unique_path(image_cache_dir, extension)?;
-    println!("Path: {}", path);
-
-    // Write file, handle errors
-    let file = fs::OpenOptions::new().create(true).write(true).open(&path);
-
-    let Ok(mut file) = file else { return Err("Couldn't open file".into()); };
-
-    if let Ok(_) = file.write_all(&picture.data) {
-        return Ok(path);
-    }
-    Err("Unknown error".into())
-}
-
-// Wrapper for some reason
-fn save_cover(picture: Option<Picture>, image_cache_dir: Option<&str>) -> Option<String> {
-    println!("Try to save cover");
-    let Some(picture) = picture else { return None };
-    let Some(image_cache_dir) = image_cache_dir else { return  None };
-    match save_image(picture, image_cache_dir) {
-        Ok(value) => Some(value),
-        Err(error) => {
-            println!("Error in save_cover: {}", error);
-            None
-        }
-    }
 }

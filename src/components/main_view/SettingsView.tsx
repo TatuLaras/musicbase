@@ -1,27 +1,18 @@
-import { invoke } from '@tauri-apps/api';
 import { Plus, TrashSolid } from 'iconoir-react';
 import { useEffect, useState } from 'react';
 import { Directory } from '../../ipc_types';
-import { open } from '@tauri-apps/api/dialog';
-import { convertFileSrc } from '@tauri-apps/api/tauri';
+import { backend } from '../../ipc_commands';
 
 type Props = {};
 
 export default function SettingsView({}: Props) {
     const [directories, setDirectories] = useState<Directory[]>([]);
     async function selectDirectory() {
-        // invoke('select_directory').then(updateDirectoryList);
-        // Open a selection dialog for image files
-        const selected = await open({
-            directory: true,
-            recursive: true,
-        });
-
-        if (!selected) return;
+        backend.select_directory().then(updateDirectoryList);
     }
 
     async function updateDirectoryList() {
-        setDirectories((await invoke('get_all_directories')) as Directory[]);
+        setDirectories(await backend.get_all_directories());
     }
 
     useEffect(() => {
@@ -36,11 +27,21 @@ export default function SettingsView({}: Props) {
                     {directories.map((dir) => (
                         <div className="item" key={dir.directory_id}>
                             <div className="dir">{dir.path}</div>
-                            <button className="delete">
+                            <button
+                                className="delete"
+                                onClick={() => {
+                                    if (!dir.directory_id) return;
+                                    backend.delete_directory(dir.directory_id);
+                                    updateDirectoryList();
+                                }}
+                            >
                                 <TrashSolid />
                             </button>
                         </div>
                     ))}
+                    {directories.length == 0 && (
+                        <div className="text-disabled">Ei kansioita.</div>
+                    )}
                 </div>
                 <button className="add" onClick={selectDirectory}>
                     <Plus />

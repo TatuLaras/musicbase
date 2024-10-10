@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import LeftPanel from './components/left_panel/LeftPanel';
 import MainView, { MainViewState } from './components/main_view/MainView';
 import Player from './components/player/Player';
@@ -14,35 +14,41 @@ function App() {
     const [shouldReset, setShouldReset] = useState<boolean>(false);
 
     // Add items to the queue
-    function onQueue(songs: Song[], start: boolean = false) {
+    const onQueue = useCallback((songs: Song[], start: boolean = false) => {
         setQueue((old) =>
             start ? old.splice(queuePos + 1, 0, ...songs) : [...old, ...songs],
         );
-    }
+    }, []);
 
-    // Set queue and start playing immediately
-    function onPlay(queue: Song[], queuePos: number) {
-        setQueue(queue);
-        setQueuePos(queuePos);
+    const onPlay = useCallback((newQueue: Song[], newQueuePos: number) => {
+        setQueue(newQueue);
+        setQueuePos(newQueuePos);
         setShouldReset(true);
-    }
+    }, []);
+
+    const onMainViewSelected = useCallback((state: MainViewState) => {
+        setMainViewState(state);
+    }, []);
 
     return (
         <>
             <div className="root-wrapper">
                 <LeftPanel
-                    onMainViewSelected={(state) => setMainViewState(state)}
+                    onMainViewSelected={onMainViewSelected}
+                    onPlay={onPlay}
                 />
                 <MainView
                     mainViewState={mainViewState}
                     onQueue={onQueue}
                     onPlay={onPlay}
+                    onMainViewSelected={onMainViewSelected}
                 />
             </div>
             <Player
-                onMainViewSelected={(state) => setMainViewState(state)}
+                onMainViewSelected={onMainViewSelected}
                 queue={queue}
                 queuePos={queuePos}
+                setQueue={setQueue}
                 setQueuePos={setQueuePos}
                 shouldReset={shouldReset}
                 setShouldReset={setShouldReset}

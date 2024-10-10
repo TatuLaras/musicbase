@@ -5,12 +5,14 @@ import { LibraryView, libraryViews } from '../../types';
 import BulletButtons from '../BulletButtons';
 import Library from './Library';
 import { MainViewState } from '../main_view/MainView';
+import { Song } from '../../ipc_types';
 
 type Props = {
     onMainViewSelected: (state: MainViewState) => void;
+    onPlay: (queue: Song[], queuePos: number) => void;
 };
 
-export default function LeftPanel({ onMainViewSelected }: Props) {
+export default function LeftPanel({ onMainViewSelected , onPlay}: Props) {
     const minWidth = 400;
     const maxWidth = clamp(1000, minWidth, window.innerWidth - 100);
     const [dragging, setDragging] = useState(false);
@@ -81,6 +83,7 @@ export default function LeftPanel({ onMainViewSelected }: Props) {
                 <Library
                     view={libraryView}
                     onMainViewSelected={onMainViewSelected}
+                    onPlay={onPlay}
                 />
             </div>
             <div className="grabbable" onMouseDown={startDrag}></div>

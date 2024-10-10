@@ -24,6 +24,7 @@
     --color-accent-primary-sat: hsl(192, 100%, 75%);
     --color-text-disabled: hsl(195, 20%, 70%);
     --color-bg-dark: hsl(195, 20%, 5%);
+    --color-bg-dark-tr: hsla(195, 20%, 5%, 0.8);
     --color-bg-very-dark: #040607;
     --color-accent-very-dark: #1a272d;
     --player-height: 6em;
@@ -47,6 +48,12 @@
 
 .root-wrapper > * {
     height: calc(100vh - var(--player-height));
+}
+
+.cover {
+    aspect-ratio: 1;
+    background-image: var(--img);
+    background-size: cover;
 }
 
 body {
@@ -78,10 +85,20 @@ body {
     aspect-ratio: 1;
     border-radius: 0.25rem;
     overflow: hidden;
+    position: relative;
+}
+
+.img-placeholder.edit {
+    cursor: pointer;
+}
+
+.img-placeholder.edit:hover * {
+    color: white;
 }
 
 .img-placeholder * {
     color: var(--color-bg-light);
+    transition: color 0.1s ease-out;
 }
 
 button {
@@ -90,40 +107,42 @@ button {
 
 button.btn {
     transition: background 0.1s ease-out;
+    width: fit-content;
+    border: none;
+    display: flex;
+    align-items: center;
+    border-radius: 0.5rem;
+    padding: 0.6em 1.6em;
+    gap: 0.8em;
+    background-color: var(--color-bg-1);
+    font-weight: 500;
 }
 
 button.btn .text {
     padding-top: 0.1em;
 }
 
-button.primary {
+button.btn.primary {
     background-color: var(--color-accent-primary);
-    border: none;
-    display: flex;
-    align-items: center;
-    border-radius: 0.5rem;
-    padding: 0.6em 1.6em;
     font-weight: 600;
-    gap: 0.8em;
 }
 
-button.primary * {
+button.btn.round {
+    border-radius: 50%;
+    width: 3em;
+    height: 3em;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+}
+
+button.btn.primary * {
     color: var(--color-bg);
 }
 
-button.primary:hover {
+button.btn.primary:hover {
     background-color: var(--color-accent-primary-1);
-}
-
-button.secondary {
-    background-color: var(--color-bg-1);
-    border: none;
-    display: flex;
-    align-items: center;
-    border-radius: 0.5rem;
-    padding: 0.6em 1.6em;
-    font-weight: 500;
-    gap: 0.8em;
 }
 
 button.secondary:hover {
@@ -147,4 +166,28 @@ button.icon-btn * {
 
 button.icon-btn:hover * {
     color: white;
+}
+
+.text-disabled {
+    opacity: 0.7;
+}
+
+.safe-image {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+}
+
+.safe-image > * {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    border-radius: 0.25rem;
+}
+
+.safe-image .image {
+    background-image: var(--img);
+    background-size: cover;
 }

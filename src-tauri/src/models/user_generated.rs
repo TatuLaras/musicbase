@@ -446,6 +446,19 @@ impl Store for Directory {
     fn is_valid(&self) -> bool {
         self.path.len() > 0
     }
+
+    fn delete(&self, conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        let Some(directory_id) = self.directory_id else { return Ok(()); };
+
+        let query = "DELETE FROM directory WHERE directory_id = :directory_id";
+        let mut statement = conn.prepare(query)?;
+
+        statement.bind((":directory_id", directory_id))?;
+
+        database::execute_statement(&mut statement)?;
+
+        Ok(())
+    }
 }
 
 impl Retrieve for Directory {

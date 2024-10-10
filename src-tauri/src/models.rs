@@ -39,7 +39,9 @@ pub trait Store {
     // validation
     fn is_valid(&self) -> bool;
 
-    //  TODO: exists_by method, which works similarly to get_by but only returns if a row exists
+    fn delete(&self, _conn: &sqlite::Connection) -> Result<(), sqlite::Error> {
+        todo!()
+    }
 }
 
 pub trait StoreFull {

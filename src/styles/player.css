@@ -39,6 +39,15 @@
     transition: opacity 0.1s ease-out;
 }
 
+.player.disabled .controls .buttons button {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.player.disabled .controls .buttons button:hover {
+    opacity: 0.6;
+}
+
 .player .options button:hover,
 .player .controls .buttons button:hover {
     opacity: 0.8;
@@ -80,13 +89,13 @@
     top: -0.3rem;
 }
 
-.player .controls .buttons .shuffle.selected *,
-.player .controls .buttons .repeat.selected * {
+.player:not(.disabled) .controls .buttons .shuffle.selected *,
+.player:not(.disabled) .controls .buttons .repeat.selected * {
     color: var(--color-accent-primary-sat);
 }
 
-.player .controls .buttons .shuffle.selected::before,
-.player .controls .buttons .repeat.selected::before {
+.player:not(.disabled) .controls .buttons .shuffle.selected::before,
+.player:not(.disabled) .controls .buttons .repeat.selected::before {
     background-color: var(--color-bg-light);
 }
 
@@ -105,9 +114,16 @@
     opacity: 0.8;
 }
 
+.player.disabled .controls .progress-bar .time-number {
+    opacity: 0.4;
+}
+
 .player .controls .progress-bar .bar {
     flex: 1;
     padding: 0.5em 0;
+}
+
+.player:not(.disabled) .controls .progress-bar .bar {
     cursor: pointer;
 }
 
@@ -118,7 +134,7 @@
     border-radius: var(--bar-height);
 }
 
-.player .controls .progress-bar .inner {
+.player:not(.disabled) .controls .progress-bar .inner {
     background-color: white;
     height: 100%;
     width: var(--progress);
@@ -127,8 +143,8 @@
     transition: background 0.1s ease-out;
 }
 
-.player .controls .progress-bar .bar:hover .inner,
-.player .controls .progress-bar.dragged .inner {
+.player:not(.disabled) .controls .progress-bar .bar:hover .inner,
+.player:not(.disabled) .controls .progress-bar.dragged .inner {
     background-color: var(--color-accent-primary-sat);
 }
 
@@ -145,8 +161,8 @@
     opacity: 0;
 }
 
-.player .controls .progress-bar.dragged .handle,
-.player .controls .progress-bar .bar:hover .handle {
+.player:not(.disabled) .controls .progress-bar.dragged .handle,
+.player:not(.disabled) .controls .progress-bar .bar:hover .handle {
     opacity: 1;
 }
 
@@ -156,6 +172,7 @@
     padding: 0.8rem;
     padding-right: 0;
     font-size: 0.9rem;
+    overflow: hidden;
 }
 
 .player .current-song * {
@@ -180,10 +197,13 @@
     flex-direction: column;
     gap: 0.2rem;
     padding-left: 1rem;
+    flex: 1;
 }
 
 .player .current-song .title {
     font-weight: 500;
+    overflow-x: hidden;
+    max-width: 100%;
 }
 
 .player .current-song .artist {
@@ -221,6 +241,9 @@
 .queue-panel .content {
     height: calc(100vh - var(--player-height));
     overflow-y: auto;
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
 }
 
 .queue-panel .song:first-child {
@@ -232,8 +255,8 @@
     align-items: center;
     gap: 1em;
     padding: 0.7em 3em 0.7em 1.2em;
-    border-radius: 0.25rem;
     cursor: pointer;
+    position: relative;
 }
 
 .queue-panel .song .cover {
@@ -267,27 +290,12 @@
 .queue-panel .song:hover .icon {
     opacity: 1;
 }
-.queue-panel .song .drag {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    align-items: stretch;
-    justify-content: center;
-}
-
-.queue-panel .song .drag div {
-    height: 3px;
-    border-radius: 1.5px;
-    width: 24px;
-    background-color: var(--color-accent-very-dark);
-}
 
 .queue-panel .song:hover {
     background-color: var(--color-bg-dark);
 }
 
 .queue-panel .song img {
-    aspect-ratio: 1 !important;
     height: 3em;
     border-radius: 0.125rem;
 }
@@ -296,9 +304,23 @@
     font-size: 0.93rem;
     color: white;
     /*  TODO: vieritys */
-    max-width: 30rem;
     text-wrap: nowrap;
     overflow: hidden;
+    width: 20em;
+    font-weight: 500;
+}
+
+.queue-panel .song .icon-btn {
+    position: absolute;
+    right: 1em;
+    top: 0;
+    bottom: 0;
+    opacity: 0;
+    transition: opacity 0.1s ease-out;
+}
+
+.queue-panel .song:not(.current):hover .icon-btn {
+    opacity: 0.8;
 }
 
 .queue-panel .song .artist {
@@ -310,4 +332,35 @@
     display: flex;
     flex-direction: column;
     gap: 0.4em;
+    flex: 1;
+}
+
+.queue-panel .song.current {
+    background-color: var(--color-bg-light);
+}
+
+.queue-panel .song.past {
+    opacity: 0.5;
+}
+
+@keyframes bop {
+    0% {
+        transform: translateY(0.1em);
+    }
+    25% {
+        transform: translateX(0.02em) translateY(-0.05em) rotate(3deg);
+    }
+    50% {
+        transform: translateY(0.1em);
+    }
+    75% {
+        transform: translateX(-0.02em) translateY(-0.05em) rotate(-3deg);
+    }
+    100% {
+        transform: translateY(0.1em);
+    }
+}
+
+.queue-panel .song.current .cover {
+    animation: bop 4s ease-in infinite;
 }

@@ -1,25 +1,35 @@
 import { MouseEvent } from 'react';
 
 type Props = {
-    text: string;
+    text?: string;
     children?: JSX.Element;
     primary?: boolean;
     onClick?: (e: MouseEvent) => void;
+    className?: string;
+    round?: boolean;
+    title?: string;
 };
 
 export default function Button({
-    text,
+    text = '',
     children,
     primary = false,
-    onClick = (_) => {},
+    onClick = () => {},
+    className = '',
+    round = false,
+    title = '',
 }: Props) {
+    let classes = className;
+
+    if (round) classes += ' round';
+
+    if (primary) classes += ' primary';
+    else classes += ' secondary';
+
     return (
-        <button
-            className={`btn ${primary ? 'primary' : 'secondary'}`}
-            onClick={onClick}
-        >
+        <button className={`btn ${classes}`} onClick={onClick} title={title}>
             {children}
-            <div className="text">{text}</div>
+            {!round && <div className="text">{text}</div>}
         </button>
     );
 }

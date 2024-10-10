@@ -9,15 +9,16 @@
     margin-left: 1.5em;
 }
 
-.album-view .top-portion img,
+.album-view .top-portion .cover,
 .album-view .top-portion .img-placeholder {
     width: calc(25% + 4rem);
     border-radius: 0.25rem;
     background-color: var(--color-bg-1);
 }
 
-.album-view .top-portion img {
+.album-view .top-portion .cover {
     cursor: pointer;
+    position: relative;
 }
 
 .album-view .top-portion .img-placeholder * {

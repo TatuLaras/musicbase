@@ -1,0 +1,112 @@
+.full-screen-bg,
+.full-screen-view {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-out;
+}
+
+.fullscreen .full-screen-bg,
+.fullscreen .full-screen-view {
+    opacity: 1;
+    pointer-events: initial;
+}
+
+.full-screen-view {
+    background-color: var(--color-bg-dark-tr);
+    z-index: 100;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+    overflow: hidden;
+}
+
+.full-screen-bg {
+    background-image: var(--img);
+    background-size: cover;
+    z-index: 99;
+    filter: blur(20px);
+}
+
+.full-screen-view .left,
+.full-screen-view .right {
+    flex: 1;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.full-screen-view .left {
+    overflow: hidden;
+}
+
+.full-screen-view .left .cover {
+    width: 100%;
+    height: 0;
+    padding-bottom: 100%;
+    border-radius: 0.25rem;
+}
+
+.full-screen-view .info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.full-screen-view .right > .info .title {
+    font-size: 1.8em;
+    margin: 0;
+}
+
+.full-screen-view .right > .info .artist {
+    font-size: 1.4em;
+}
+
+.queue {
+    display: flex;
+    flex-direction: column;
+    margin-top: 4em;
+}
+
+.queue .song {
+    display: flex;
+    gap: 1em;
+    padding: 0.6em 0;
+}
+
+.queue .cover {
+    height: 3.5em;
+    border-radius: 0.125rem;
+}
+
+.queue .name {
+    font-size: 1.1em;
+    font-weight: 500;
+}
+.queue .artist {
+    font-size: 1.1em;
+    opacity: 0.8;
+}
+
+.queue .i-0 {
+    opacity: 0.3;
+}
+
+.queue .i-1 {
+    opacity: 0.55;
+}
+
+.queue .i-2 {
+    opacity: 0.8;
+}
+
+.full-screen-view .icon-btn {
+    position: absolute;
+    right: 1.2em;
+    bottom: 1.8em;
+}

@@ -3,6 +3,7 @@
     width: var(--w);
     display: flex;
     justify-content: space-between;
+    position: relative;
 }
 
 #left-panel .grabbable {
@@ -19,4 +20,11 @@
     display: flex;
     flex-direction: column;
     flex: 1;
+}
+
+.add-btn {
+    position: absolute;
+    right: 3em;
+    bottom: 2em;
+    z-index: 4;
 }

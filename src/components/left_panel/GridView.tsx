@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import Loading from '../Loading';
 import { FilterState } from './Filters';
-import ImagePlaceholder from '../ImagePlaceholder';
+import Button from '../Button';
+import { PlaySolid } from 'iconoir-react';
+import SafeImage from '../SafeImage';
 
 export interface GridItem {
     id: number;
@@ -10,12 +12,6 @@ export interface GridItem {
     imageUrl?: string;
     onSelected: (id: number) => void;
 }
-
-type Props = {
-    itemSource: () => Promise<GridItem[]>;
-    circles?: boolean;
-    filterState?: FilterState;
-};
 
 function passesFilter(
     filterState: FilterState | undefined,
@@ -36,10 +32,20 @@ function passesFilter(
     return true;
 }
 
+type Props = {
+    itemSource: () => Promise<GridItem[]>;
+    circles?: boolean;
+    filterState?: FilterState;
+    playButton?: boolean;
+    onPlayButtonClicked?: (id: number) => void;
+};
+
 export default function GridView({
     itemSource,
     circles = false,
     filterState = undefined,
+    playButton = false,
+    onPlayButtonClicked = () => {},
 }: Props) {
     //  TODO: Make custom hook to avoid repetition
     const [items, setItems] = useState<GridItem[]>([]);
@@ -65,16 +71,27 @@ export default function GridView({
                         key={item.id}
                         className="item"
                         onClick={() => item.onSelected(item.id)}
+                        onContextMenu={(e) => {
+                            //  TODO: Context menus
+                            e.preventDefault();
+                        }}
                     >
-                        {item.imageUrl ? (
-                            <img
-                                src={item.imageUrl}
-                                alt={`Cover for ${item.title}`}
-                                draggable={false}
-                            />
-                        ) : (
-                            !item.imageUrl && <ImagePlaceholder />
-                        )}
+                        <SafeImage src={item.imageUrl}>
+                            {playButton ? (
+                                <div className="play-button">
+                                    <Button
+                                        onClick={(e) => {
+                                            onPlayButtonClicked(item.id);
+                                            e.stopPropagation();
+                                        }}
+                                        round={true}
+                                        primary={true}
+                                    >
+                                        <PlaySolid />
+                                    </Button>
+                                </div>
+                            ) : undefined}
+                        </SafeImage>
                         <div className="title">{item.title}</div>
                         <div className="extra-info">{item.extraInfo}</div>
                     </div>
@@ -82,4 +99,3 @@ export default function GridView({
         </div>
     );
 }
-

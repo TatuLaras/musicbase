@@ -2,10 +2,4 @@
 export const libraryViews = ['albums', 'artists', 'playlists', 'tags'] as const;
 export type LibraryView = (typeof libraryViews)[number];
 
-export type MainViewType =
-    | 'settings'
-    | 'album'
-    | 'playlist'
-    | 'playlistsByTag'
-    | 'albumsByTag'
-    | 'albumsByArtist';
+export type MainViewType = 'settings' | 'album' | 'artist' | 'playlist' | 'tag';

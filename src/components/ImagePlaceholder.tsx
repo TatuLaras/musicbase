@@ -1,9 +1,22 @@
-import { MusicNote } from 'iconoir-react';
+import { Edit, MusicNote } from 'iconoir-react';
 
-export default function ImagePlaceholder() {
+interface Props {
+    edit?: boolean;
+    onEdit?: () => void;
+}
+
+export default function ImagePlaceholder({
+    edit = false,
+    onEdit = () => {},
+}: Props) {
     return (
-        <div className="img-placeholder">
-            <MusicNote />
+        <div
+            className={`img-placeholder ${edit ? 'edit' : ''}`}
+            onClick={() => {
+                if (edit) onEdit();
+            }}
+        >
+            {edit ? <Edit /> : <MusicNote />}
         </div>
     );
 }

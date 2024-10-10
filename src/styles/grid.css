@@ -2,7 +2,7 @@
     margin: 0.8em;
     margin-top: 1.2em;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(8em, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(10em, 1fr));
     overflow-x: hidden;
     flex: 1;
     align-content: start;
@@ -10,32 +10,35 @@
 
 .grid-view .item {
     padding: 1em;
-    border-radius: 0.5em;
+    border-radius: 0.5rem;
     transition: background 0.1s ease-out;
     cursor: pointer;
     word-wrap: break-word;
+}
+
+.grid-view .item.flash {
+    background-color: red;
 }
 
 .grid-view .item:hover {
     background-color: var(--color-bg-light-1);
 }
 
-.grid-view .item img,
-.grid-view .item .img-placeholder {
-    aspect-ratio: 1;
-    width: 100%;
-    object-fit: cover;
-    border-radius: 0.25rem;
+#main-view .grid-view .item:hover {
+    background-color: var(--color-bg-1);
 }
 
 .grid-view .item .img-placeholder {
     margin-bottom: 1rem;
 }
 
-.grid-view.circles .item img,
-.grid-view.circles .item .img-placeholder {
+.grid-view.circles .item .safe-image .image,
+.grid-view.circles .item .safe-image .img-placeholder {
     border-radius: 50%;
-    margin-bottom: 0.5em;
+}
+
+.grid-view.circles .item .safe-image {
+    margin-bottom: 0.6em;
 }
 
 .grid-view .item .title {
@@ -43,7 +46,32 @@
     margin-top: 0.5em;
 }
 
+.grid-view.circles .item .title {
+    text-align: center;
+}
+
 .grid-view .item .extra-info {
     color: var(--color-text-disabled);
     margin-top: 0.2em;
+}
+
+.grid-view .item .play-button {
+    display: flex;
+    align-items: flex-end;
+    padding: 0.6em;
+    overflow: hidden;
+}
+
+.grid-view .item .play-button .btn {
+    transform: translateY(6em);
+    transition: transform 0.2s ease-in-out;
+}
+
+.grid-view .item:hover .play-button .btn {
+    transform: translateY(0);
+}
+
+.grid-view .item .play-button svg {
+    position: relative;
+    left: 2px;
 }

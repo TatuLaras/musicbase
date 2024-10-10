@@ -1,4 +1,4 @@
-use sqlite::{Connection, State};
+use sqlite::{BindableWithIndex, Connection, State};
 
 use crate::{
     models::{Retrieve, Store, StoreFull},
@@ -53,7 +53,8 @@ impl ConnectionWrapper {
             playlist_song_id INTEGER PRIMARY KEY,
             song_id INTEGER NOT NULL,
             playlist_id INTEGER NOT NULL,
-            added TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            order INTEGER DEFAULT 0
         );
 
         CREATE TABLE tag (
@@ -99,6 +100,10 @@ impl ConnectionWrapper {
         item.exists(&self.conn)
     }
 
+    pub fn delete(&self, item: &mut impl Store) -> Result<(), sqlite::Error> {
+        item.delete(&self.conn)
+    }
+
     pub fn get_all<T: Retrieve>(&self, order: Order) -> Result<Vec<T>, sqlite::Error> {
         T::get_all(&self.conn, order)
     }
@@ -141,5 +146,30 @@ pub fn execute_statement(statement: &mut sqlite::Statement) -> Result<(), sqlite
             return Err(err);
         }
     }
+    Ok(())
+}
+
+// Helper to run an update query
+pub fn update_field<T>(
+    db: &ConnectionWrapper,
+    table_name: &str,
+    field_name: &str,
+    field_value: T,
+    id_name: &str,
+    id_value: i64,
+) -> Result<(), sqlite::Error>
+where
+    T: Sized + BindableWithIndex,
+{
+    let query = format!(
+        "UPDATE {table} SET {field} = :{field} WHERE {id} = :{id}",
+        table = table_name,
+        id = id_name,
+        field = field_name,
+    );
+    let mut statement = db.conn.prepare(query)?;
+    statement.bind((1, field_value))?;
+    statement.bind((2, id_value))?;
+    execute_statement(&mut statement)?;
     Ok(())
 }

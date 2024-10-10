@@ -1,14 +1,17 @@
+import { Howl, Howler } from 'howler';
 import {
     CSSProperties,
     Dispatch,
     SetStateAction,
     useCallback,
     useEffect,
+    useRef,
     useState,
 } from 'react';
 import ProgressBar from './ProgressBar';
 import {
     LineSpace,
+    Maximize,
     PauseSolid,
     PlaySolid,
     Repeat,
@@ -16,17 +19,21 @@ import {
     Shuffle,
     SkipNextSolid,
     SkipPrevSolid,
+    Xmark,
 } from 'iconoir-react';
 import { MainViewState } from '../main_view/MainView';
 import { Song } from '../../ipc_types';
 import { backend } from '../../ipc_commands';
 import { convertFileSrc } from '@tauri-apps/api/tauri';
 import ImagePlaceholder from '../ImagePlaceholder';
+import { songClass, wrap } from '../../utils';
+import FullScreenView from './FullScreenView';
 
 type Props = {
     onMainViewSelected: (state: MainViewState) => void;
     queue: Song[];
     queuePos: number;
+    setQueue: Dispatch<SetStateAction<Song[]>>;
     setQueuePos: Dispatch<SetStateAction<number>>;
     shouldReset: boolean;
     setShouldReset: Dispatch<SetStateAction<boolean>>;
@@ -35,6 +42,7 @@ type Props = {
 export default function Player({
     onMainViewSelected,
     queue,
+    setQueue,
     queuePos,
     setQueuePos,
     shouldReset,
@@ -47,7 +55,12 @@ export default function Player({
     const [time, setTime] = useState(0);
     const [loadedNextSong, setLoadedNextSong] = useState<number | null>(null);
     const [enableQueuePanel, setEnableQueuePanel] = useState(false);
+    const [disabled, setDisabled] = useState(true);
+    const [shuffle, setShuffle] = useState(false);
+    const [repeat, setRepeat] = useState(false);
+    const [fullscreen, setFullscreen] = useState(false);
 
+    const currentSongQueueItem = useRef<HTMLDivElement | null>(null);
     useEffect(() => {
         if (queueItem(1)?.song_id != loadedNextSong)
             console.log('TODO: Should replace the next song');
@@ -70,6 +83,14 @@ export default function Player({
         [queuePos, queue],
     );
 
+    useEffect(() => {
+        if (!currentSongQueueItem.current) return;
+        currentSongQueueItem.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+        });
+    }, [queuePos]);
+
     function reset() {
         const current = queueItem();
         const next = queueItem(1);
@@ -79,23 +100,33 @@ export default function Player({
         // Start immediately playing the first item and queue the next
         backend.playSong(current.song_id!, false);
 
-        if (next) {
-            backend.playSong(next.song_id!, true);
-            setLoadedNextSong(next.song_id!);
-        }
+        // if (next) {
+        //     backend.playSong(next.song_id!, true);
+        //     setLoadedNextSong(next.song_id!);
+        // }
 
         setSongStartTime(Date.now());
         setTotalTime(current.duration_s ?? 0);
         setCurrentSong(current);
         setPlaying(true);
         setShouldReset(false);
+        setDisabled(false);
     }
 
-    function nextSong() {
+    const nextSong = useCallback(() => {
         const current = queueItem(1);
         const next = queueItem(2);
 
-        if (!current) return;
+        if (!current) {
+            if (repeat) {
+                setQueuePos(0);
+                setShouldReset(true);
+            } else {
+                setPlaying(false);
+            }
+
+            return;
+        }
 
         // Add next song to queue
         if (next) backend.playSong(next.song_id!, true);
@@ -106,11 +137,10 @@ export default function Player({
         setPlaying(true);
         setCurrentSong(current);
         setQueuePos((old) => old + 1);
-    }
+    }, [repeat, queueItem]);
 
     function seek(time: number) {
         setSongStartTime(Date.now() - time * 1000);
-        backend.seek(time * 1000);
     }
 
     // Updates the time and calls nextSong() when needed
@@ -119,7 +149,6 @@ export default function Player({
             if (!playing) return;
 
             const elapsedTime = (Date.now() - songStartTime) / 1000;
-            console.log(elapsedTime);
 
             if (elapsedTime >= totalTime) nextSong();
             else setTime(elapsedTime);
@@ -129,10 +158,29 @@ export default function Player({
 
     return (
         <>
+            {currentSong && (
+                <FullScreenView
+                    song={currentSong}
+                    fullscreen={fullscreen}
+                    setFullscreen={setFullscreen}
+                    queue={queue}
+                    queuePos={queuePos}
+                />
+            )}
             <div className={`queue-panel ${enableQueuePanel ? 'enable' : ''}`}>
                 <div className="content">
                     {queue.map((song, i) => (
-                        <div className="song">
+                        <div
+                            className={`song ${songClass(i, queuePos)}`}
+                            onClick={() => {
+                                setQueuePos(i);
+                                setShouldReset(true);
+                            }}
+                            ref={
+                                i == queuePos ? currentSongQueueItem : undefined
+                            }
+                            key={i}
+                        >
                             <div
                                 className="cover"
                                 style={
@@ -153,11 +201,24 @@ export default function Player({
                                     {song.artist?.name}
                                 </div>
                             </div>
+                            <button
+                                className="icon-btn"
+                                onClick={(e) => {
+                                    setQueue((old) => {
+                                        const copy = [...old];
+                                        copy.splice(i, 1);
+                                        return copy;
+                                    });
+                                    e.stopPropagation();
+                                }}
+                            >
+                                <Xmark />
+                            </button>
                         </div>
                     ))}
                 </div>
             </div>
-            <div className="player">
+            <div className={`player ${disabled ? 'disabled' : ''}`}>
                 <div className="current-song side">
                     {currentSong && (
                         <>
@@ -187,19 +248,50 @@ export default function Player({
                 </div>
                 <div className="controls">
                     <div className="buttons">
-                        <button className="shuffle selected">
+                        <button
+                            className={`shuffle ${shuffle ? 'selected' : ''}`}
+                            onClick={() => setShuffle((old) => !old)}
+                        >
                             <Shuffle />
                         </button>
-                        <button className="prev">
+                        <button
+                            className="prev"
+                            onClick={() => {
+                                setQueuePos((old) =>
+                                    wrap(old - 1, queue.length),
+                                );
+                                setShouldReset(true);
+                            }}
+                        >
                             <SkipPrevSolid />
                         </button>
-                        <button className="play">
-                            {playing ? <PauseSolid /> : <PlaySolid />}
+                        <button
+                            className="play"
+                            onClick={() =>
+                                disabled ? null : setPlaying((old) => !old)
+                            }
+                        >
+                            {playing && !disabled ? (
+                                <PauseSolid />
+                            ) : (
+                                <PlaySolid />
+                            )}
                         </button>
-                        <button className="next">
+                        <button
+                            className="next"
+                            onClick={() => {
+                                setQueuePos((old) =>
+                                    wrap(old + 1, queue.length),
+                                );
+                                setShouldReset(true);
+                            }}
+                        >
                             <SkipNextSolid />
                         </button>
-                        <button className="repeat selected">
+                        <button
+                            className={`repeat ${repeat ? 'selected' : ''}`}
+                            onClick={() => setRepeat((old) => !old)}
+                        >
                             <Repeat />
                         </button>
                     </div>
@@ -210,19 +302,22 @@ export default function Player({
                     />
                 </div>
                 <div className="options side">
+                    <button onClick={() => setFullscreen(true)}>
+                        <Maximize />
+                    </button>
+                    <button
+                        onClick={() =>
+                            disabled ? null : setEnableQueuePanel((old) => !old)
+                        }
+                    >
+                        <LineSpace />
+                    </button>
                     <button
                         onClick={() => {
                             onMainViewSelected({ mainViewType: 'settings' });
                         }}
                     >
                         <Settings />
-                    </button>
-                    <button
-                        onClick={() => {
-                            setEnableQueuePanel(old => !old);
-                        }}
-                    >
-                        <LineSpace />
                     </button>
                 </div>
             </div>

@@ -71,6 +71,7 @@
     align-items: stretch;
     background-color: var(--color-bg-1);
     width: fit-content;
+    min-width: 30em;
     padding: 1rem;
     border-radius: 0.25rem 0.25rem 0.25rem 0;
 }

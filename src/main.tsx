@@ -17,6 +17,8 @@ import './styles/main_view.css';
 import './styles/settings_view.css';
 import './styles/album.css';
 import './styles/player.css';
+import './styles/full_screen_view.css';
+import './styles/modal.css';
 
 import { invoke } from '@tauri-apps/api';
 
