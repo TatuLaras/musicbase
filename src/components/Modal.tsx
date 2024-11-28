@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import Button from './Button';
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
     onCancel?: () => void;
     cancelText?: string;
     confirmText?: string;
+    className?: string;
 }
 
 export default function Modal({
@@ -20,20 +22,37 @@ export default function Modal({
     onCancel,
     cancelText = 'Cancel',
     confirmText = 'OK',
+    className = '',
 }: Props) {
+    useEffect(() => {
+        const keydown = (e: any) => {
+            if (onConfirm && e.key == 'Enter') onConfirm();
+            // if (onCancel && e.key == 'Escape') onCancel();
+        };
+        window.addEventListener('keydown', keydown);
+        return () => window.removeEventListener('keydown', keydown);
+    }, [onConfirm, onCancel]);
+
     return (
-        <div className={`modal ${show ? 'show' : ''}`} onClick={onCancel}>
+        <div
+            className={`modal ${show ? 'show' : ''} ${className}`}
+            onClick={onCancel}
+        >
             <div className="inner" onClick={(e) => e.stopPropagation()}>
                 <div className="title">{title}</div>
                 {text && <div className="text">{text}</div>}
                 <div className="content">{children}</div>
                 <div className="buttons">
-                    <Button text={cancelText} onClick={onCancel}></Button>
-                    <Button
-                        text={confirmText}
-                        primary={true}
-                        onClick={onConfirm}
-                    ></Button>
+                    {cancelText.length > 0 && (
+                        <Button text={cancelText} onClick={onCancel}></Button>
+                    )}
+                    {confirmText.length > 0 && (
+                        <Button
+                            text={confirmText}
+                            primary={true}
+                            onClick={onConfirm}
+                        ></Button>
+                    )}
                 </div>
             </div>
         </div>

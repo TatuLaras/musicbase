@@ -22,9 +22,43 @@
     flex: 1;
 }
 
+#left-panel .panel-title {
+    display: flex;
+    justify-content: space-between;
+}
+
+#left-panel .panel-title .start {
+    display: flex;
+    align-items: center;
+}
+
 .add-btn {
     position: absolute;
     right: 3em;
     bottom: 2em;
     z-index: 4;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+#left-panel .sync {
+    align-self: stretch;
+    justify-self: flex-end;
+    font-size: 1rem;
+}
+
+#left-panel .sync.working {
+    animation: spin 1s linear infinite;
+    opacity: 1 !important;
+    cursor: initial;
+}
+
+#left-panel .sync.working * {
+    color: white;
 }

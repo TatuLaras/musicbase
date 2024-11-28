@@ -22,8 +22,10 @@
     --color-accent-primary: hsl(195, 70%, 80%);
     --color-accent-primary-1: hsl(195, 70%, 86%);
     --color-accent-primary-sat: hsl(192, 100%, 75%);
+    --color-accent-danger-sat: hsl(339, 69%, 65%);
     --color-text-disabled: hsl(195, 20%, 70%);
     --color-bg-dark: hsl(195, 20%, 5%);
+    --color-bg-dark-1: hsl(195, 20%, 15%);
     --color-bg-dark-tr: hsla(195, 20%, 5%, 0.8);
     --color-bg-very-dark: #040607;
     --color-accent-very-dark: #1a272d;

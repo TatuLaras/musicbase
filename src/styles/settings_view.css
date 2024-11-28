@@ -84,10 +84,6 @@
     padding: 0.6rem;
 }
 
-.dir-list .item .dir {
-    opacity: 0.9;
-}
-
 .dir-list button {
     background-color: none;
     background: none;
@@ -103,4 +99,11 @@
 
 .dir-list button:hover {
     opacity: 0.8 !important;
+}
+
+.settings-view .qr-code {
+    background-color: white;
+    padding: 20px;
+    border-radius: 0.25rem;
+    width: fit-content;
 }

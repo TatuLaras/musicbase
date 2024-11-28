@@ -1,18 +1,15 @@
 import { CSSProperties, MouseEvent, useEffect, useState } from 'react';
-import { AlbumOpen } from 'iconoir-react';
+import { AlbumOpen, RefreshDouble } from 'iconoir-react';
 import { clamp } from '../../utils';
 import { LibraryView, libraryViews } from '../../types';
 import BulletButtons from '../BulletButtons';
 import Library from './Library';
-import { MainViewState } from '../main_view/MainView';
-import { Song } from '../../ipc_types';
+import { backend } from '../../ipc_commands';
+import { listen } from '@tauri-apps/api/event';
 
-type Props = {
-    onMainViewSelected: (state: MainViewState) => void;
-    onPlay: (queue: Song[], queuePos: number) => void;
-};
+type Props = {};
 
-export default function LeftPanel({ onMainViewSelected , onPlay}: Props) {
+export default function LeftPanel({}: Props) {
     const minWidth = 400;
     const maxWidth = clamp(1000, minWidth, window.innerWidth - 100);
     const [dragging, setDragging] = useState(false);
@@ -23,6 +20,8 @@ export default function LeftPanel({ onMainViewSelected , onPlay}: Props) {
     const [libraryView, setLibraryView] = useState<LibraryView>(
         libraryViews[0],
     );
+    const [syncWorking, setSyncWorking] = useState(false);
+    const [forceLibraryRefresh, setForceLibraryRefresh] = useState(0);
 
     function startDrag(e: MouseEvent) {
         setDragging(true);
@@ -50,6 +49,18 @@ export default function LeftPanel({ onMainViewSelected , onPlay}: Props) {
         setPanelWidthOffset(0);
     }, [dragging, panelWidthOffset]);
 
+    // Listen for an event from the backend
+    useEffect(() => {
+        const unlisten = listen('scan_done', () => {
+            setSyncWorking(false);
+            setForceLibraryRefresh((old) => old + 1);
+        });
+
+        return () => {
+            unlisten.then((f) => f());
+        };
+    }, []);
+
     useEffect(() => {
         window.addEventListener('mouseup', stopDrag);
         window.addEventListener('mousemove', mouseMove);
@@ -71,10 +82,22 @@ export default function LeftPanel({ onMainViewSelected , onPlay}: Props) {
         >
             <div className="content">
                 <div className="panel-title">
-                    <div className="icon">
-                        <AlbumOpen />
+                    <div className="start">
+                        <div className="icon">
+                            <AlbumOpen />
+                        </div>
+                        <div className="text">Library</div>
                     </div>
-                    <div className="text">Library</div>
+                    <button
+                        className={`icon-btn sync ${syncWorking ? 'working' : ''}`}
+                        onClick={() => {
+                            if (syncWorking) return;
+                            setSyncWorking(true);
+                            backend.scan();
+                        }}
+                    >
+                        <RefreshDouble />
+                    </button>
                 </div>
                 <BulletButtons<LibraryView>
                     onViewSelected={(view) => setLibraryView(view)}
@@ -82,8 +105,7 @@ export default function LeftPanel({ onMainViewSelected , onPlay}: Props) {
                 />
                 <Library
                     view={libraryView}
-                    onMainViewSelected={onMainViewSelected}
-                    onPlay={onPlay}
+                    forceRefresh={forceLibraryRefresh}
                 />
             </div>
             <div className="grabbable" onMouseDown={startDrag}></div>

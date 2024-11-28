@@ -1,9 +1,8 @@
 import { MainViewType } from '../../types';
-import AlbumView, { AlbumViewData } from './AlbumView';
-import { Song } from '../../ipc_types';
+import AlbumView from './AlbumView';
 import { convertFileSrc } from '@tauri-apps/api/tauri';
 import SettingsView from './SettingsView';
-import { useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import GridView, { GridItem } from '../left_panel/GridView';
 import { backend } from '../../ipc_commands';
 import Filters, { FilterState } from '../left_panel/Filters';
@@ -13,19 +12,23 @@ export interface MainViewState {
     id?: number;
 }
 
+export interface MainViewContextState {
+    onMainViewSelected: (state: MainViewState) => void;
+    onMainViewUpdate: () => void;
+}
+
+export const MainViewContext = createContext<MainViewContextState>({
+    onMainViewSelected: () => {},
+    onMainViewUpdate: () => {},
+});
+
 type Props = {
     mainViewState: MainViewState | null;
-    onPlay: (queue: Song[], queuePos: number) => void;
-    onQueue: (songs: Song[], start: boolean) => void;
-    onMainViewSelected: (state: MainViewState) => void;
 };
 
-export default function MainView({
-    mainViewState,
-    onPlay,
-    onQueue,
-    onMainViewSelected,
-}: Props) {
+export default function MainView({ mainViewState }: Props) {
+    const onMainViewSelected = useContext(MainViewContext).onMainViewSelected;
+
     const [filterState, setFilterState] = useState<FilterState>({
         searchQuery: '',
     });
@@ -54,22 +57,9 @@ export default function MainView({
     }
 
     const content: { [key: string]: JSX.Element } = {
-        album: mainViewState?.id ? (
-            <AlbumView
-                id={mainViewState.id}
-                onPlay={onPlay}
-                onQueue={onQueue}
-            />
-        ) : (
-            <></>
-        ),
+        album: mainViewState?.id ? <AlbumView id={mainViewState.id} /> : <></>,
         playlist: mainViewState?.id ? (
-            <AlbumView
-                id={mainViewState.id}
-                isPlaylist={true}
-                onPlay={onPlay}
-                onQueue={onQueue}
-            />
+            <AlbumView id={mainViewState.id} isPlaylist={true} />
         ) : (
             <></>
         ),

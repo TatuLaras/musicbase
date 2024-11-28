@@ -1,0 +1,72 @@
+.context-menu {
+    position: fixed;
+    top: var(--y);
+    left: var(--x);
+    z-index: 98;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.context-menu.show {
+    opacity: 1;
+    pointer-events: initial;
+}
+
+.context-menu .subitem,
+.context-menu .item {
+    background-color: var(--color-bg-dark);
+    padding: 0.8em 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.1s ease-out;
+    white-space: nowrap;
+}
+
+.context-menu .item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1em;
+}
+
+.context-menu .item svg {
+    opacity: 0.8;
+    font-size: 0.9rem;
+}
+
+.context-menu .subitem:hover,
+.context-menu .item:hover {
+    background-color: var(--color-bg-dark-1);
+}
+
+.context-menu .item:first-child {
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.context-menu .subitem:first-child {
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.context-menu .subitem:last-child,
+.context-menu .item:last-child {
+    border-radius: 0 0 0.5rem 0.5rem;
+    padding-bottom: 0.9em;
+}
+
+.context-menu .item:last-child:first-child {
+    border-radius: 0.5rem;
+}
+
+.context-menu .item .subitems {
+    position: absolute;
+    top: 0;
+    left: 100%;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.context-menu .item:hover > .subitems {
+    opacity: 1;
+    pointer-events: initial;
+}

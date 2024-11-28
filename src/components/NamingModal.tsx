@@ -6,13 +6,15 @@ interface Props {
     text?: string;
     show?: boolean;
     inputPlaceholder?: string;
+    inputLabel?: string;
     onDone?: (result: string | null) => void;
 }
 export default function NamingModal({
     title,
     text,
     show = false,
-    inputPlaceholder = '',
+    inputLabel = 'Name',
+    inputPlaceholder,
     onDone = () => {},
 }: Props) {
     const inputRef = useRef<HTMLInputElement | null>(null);
@@ -35,13 +37,18 @@ export default function NamingModal({
                 onDone(null);
             }}
         >
-            <input
-                type="text"
-                ref={inputRef}
-                placeholder={inputPlaceholder}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-            />
+            <>
+                <label htmlFor="name">{`${inputLabel}:`}</label>
+                <input
+                    type="text"
+                    name="name"
+                    id="name"
+                    ref={inputRef}
+                    placeholder={inputPlaceholder ?? inputLabel}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                />
+            </>
         </Modal>
     );
 }

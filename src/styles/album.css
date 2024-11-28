@@ -47,19 +47,15 @@
 
 .album-view .button-row {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     margin: 2em 1.5em;
     margin-top: 2.5em;
-}
-
-.album-view .button-row .start {
-    display: flex;
     gap: 1em;
 }
 
 .album-view .song-list {
     margin: 1em;
+    margin-bottom: 4em;
 }
 
 .album-view .song-list .header,
@@ -67,7 +63,7 @@
     display: flex;
     justify-content: space-between;
     display: grid;
-    grid-template-columns: 3em 2fr 1fr 5em 5em;
+    grid-template-columns: 3em 1.5fr 1fr 5em 5em;
 }
 
 .album-view .song-list .header {
@@ -93,10 +89,12 @@
     border-radius: 0.25rem;
     margin-top: 0.1em;
     cursor: pointer;
+    transition: background 0.1s ease-out;
 }
 
 .album-view .song-item .number .play {
-    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.1s ease-out;
     position: absolute;
     top: 0;
     bottom: 0;
@@ -113,7 +111,7 @@
 }
 
 .album-view .song-item:hover .play {
-    visibility: visible;
+    opacity: 1;
 }
 
 .album-view .song-item:hover .n {
@@ -127,10 +125,12 @@
 .album-view .song-item .title {
     white-space: nowrap;
     font-weight: 500;
+    margin-right: 0.5em;
 }
 
 .album-view .song-item .artist {
     white-space: nowrap;
+    margin-right: 0.5em;
 }
 
 .album-view .cover-full {

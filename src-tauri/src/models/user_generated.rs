@@ -1,5 +1,5 @@
 use crate::param::AsQuery;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlite::State;
 
 use crate::{
@@ -10,7 +10,7 @@ use crate::{
 
 use super::{ensure_valid, Retrieve, Store, StoreFull};
 
-#[derive(Debug, Clone, PartialEq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Playlist {
     pub playlist_id: Option<i64>,
     pub name: String,
@@ -141,10 +141,13 @@ impl StoreFull for Playlist {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct PlaylistSong {
     pub playlist_song_id: Option<i64>,
     pub song_id: i64,
     pub playlist_id: i64,
+    pub ordering: i64,
+    pub added: Option<String>,
 }
 
 impl Store for PlaylistSong {
@@ -154,15 +157,16 @@ impl Store for PlaylistSong {
         // Note the missing "exists check"
 
         let query = "INSERT INTO playlist_song
-        (song_id, playlist_id)
+        (song_id, playlist_id, ordering) 
         VALUES 
-        (:song_id, :playlist_id)
+        (:song_id, :playlist_id, :ordering) 
         ";
 
         let mut statement = conn.prepare(query)?;
 
         statement.bind((":song_id", self.song_id))?;
         statement.bind((":playlist_id", self.playlist_id))?;
+        statement.bind((":ordering", self.ordering))?;
 
         database::execute_statement(&mut statement)?;
         self.playlist_song_id = Some(database::last_id(conn)?);

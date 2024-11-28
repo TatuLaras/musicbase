@@ -1,23 +1,34 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/tauri';
 import { LibraryView } from '../../types';
 import GridView, { GridItem } from './GridView';
-import { useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import ListView, { ListItem } from './ListView';
 import Filters, { FilterState } from './Filters';
-import { Album, Artist, Playlist, Song, Tag } from '../../ipc_types';
-import { MainViewState } from '../main_view/MainView';
+import { Album, Artist, Playlist, Tag } from '../../ipc_types';
+import { MainViewContext } from '../main_view/MainView';
 import Button from '../Button';
 import { Plus } from 'iconoir-react';
 import { backend } from '../../ipc_commands';
 import NamingModal from '../NamingModal';
+import { PlayerContext } from '../player/Player';
+import { ContextMenuItem } from '../ContextMenu';
+import FormModal from '../FormModal';
+import PlaylistSelectModal, {
+    PlaylistSelectModalState,
+} from '../PlaylistSelectModal';
 
 type Props = {
     view: LibraryView;
-    onMainViewSelected: (state: MainViewState) => void;
-    onPlay: (queue: Song[], queuePos: number) => void;
+    forceRefresh?: number;
 };
 
-function Library({ view, onMainViewSelected, onPlay }: Props) {
+function Library({ view, forceRefresh = 0 }: Props) {
+    const mainViewContext = useContext(MainViewContext);
+    const onMainViewSelected = mainViewContext.onMainViewSelected;
+    const onMainViewUpdate = mainViewContext.onMainViewUpdate;
+
+    const playerContext = useContext(PlayerContext);
+
     const [filterState, setFilterState] = useState<FilterState>({
         searchQuery: '',
     });
@@ -29,18 +40,71 @@ function Library({ view, onMainViewSelected, onPlay }: Props) {
     const [showPlaylistNamingModal, setShowPlaylistNamingModal] =
         useState(false);
 
+    const [playlistSelectModalState, setPlaylistSelectModalState] =
+        useState<PlaylistSelectModalState>({ show: false });
+
+    const [showPlaylistEditModal, setShowPlaylistEditModal] = useState(false);
+    const [playlistEditModalData, setPlaylistEditModalData] =
+        useState<Playlist | null>(null);
+
     // Reset filter state on view change
     useEffect(() => {
         setFilterState({ searchQuery: '' });
     }, [view]);
+
+    function queueAlbum(albumId?: number, start: boolean = false) {
+        if (!albumId) return;
+        backend.get_album_songs(albumId).then((albumSongs) => {
+            if (albumSongs.length > 0) playerContext.onQueue(albumSongs, start);
+        });
+    }
+
+    function queuePlaylist(playlistId?: number, start: boolean = false) {
+        if (!playlistId) return;
+        backend.get_playlist_songs(playlistId).then((playlistSongs) => {
+            if (playlistSongs.length > 0)
+                playerContext.onQueue(playlistSongs, start);
+        });
+    }
+
+    function addPlaylistToPlaylist(
+        sourcePlaylistId?: number,
+        targetPlaylistId?: number,
+    ) {
+        if (!sourcePlaylistId || !targetPlaylistId) return;
+        backend.get_playlist_songs(sourcePlaylistId).then((playlistSongs) => {
+            backend
+                .add_songs_to_playlist(
+                    playlistSongs
+                        .filter((song) => song.song_id)
+                        .map((song) => song.song_id!),
+                    targetPlaylistId,
+                )
+                .then(onMainViewUpdate);
+        });
+    }
+
+    function addAlbumToPlaylist(albumId?: number, playlistId?: number) {
+        if (!albumId || !playlistId) return;
+        backend.get_album_songs(albumId).then((albumSongs) => {
+            backend
+                .add_songs_to_playlist(
+                    albumSongs
+                        .filter((song) => song.song_id)
+                        .map((song) => song.song_id!),
+                    playlistId,
+                )
+                .then(onMainViewUpdate);
+        });
+    }
 
     async function getAlbums(): Promise<GridItem[]> {
         const result = (await invoke('get_all_albums')) as Album[];
 
         return result.map((album) => {
             const imageUrl =
-                album.cover_path && album.cover_path.length > 0
-                    ? convertFileSrc(album.cover_path)
+                album.cover_path_small && album.cover_path_small.length > 0
+                    ? convertFileSrc(album.cover_path_small)
                     : undefined;
 
             return {
@@ -53,6 +117,31 @@ function Library({ view, onMainViewSelected, onPlay }: Props) {
                         mainViewType: 'album',
                         id: album.album_id,
                     }),
+                contextMenuItems: [
+                    {
+                        label: 'Add to',
+                        subitems: [
+                            {
+                                label: 'Play queue',
+                                onClick: () => queueAlbum(album.album_id),
+                            },
+                            {
+                                label: 'Play queue (next)',
+                                onClick: () => queueAlbum(album.album_id, true),
+                            },
+                            {
+                                label: 'Playlist',
+                                onClick: () => {
+                                    setPlaylistSelectModalState({
+                                        show: true,
+                                        albumId: album.album_id,
+                                    });
+                                },
+                            },
+                        ],
+                    },
+                    { label: 'Select cover' },
+                ],
             };
         });
     }
@@ -79,9 +168,10 @@ function Library({ view, onMainViewSelected, onPlay }: Props) {
         });
     }
 
-    async function getPlaylists(): Promise<GridItem[]> {
-        const result = (await invoke('get_all_playlists')) as Playlist[];
-        return result.map((playlist) => {
+    const getPlaylists = async (): Promise<GridItem[]> => {
+        const playlists = await backend.get_all_playlists();
+
+        return playlists.map((playlist) => {
             const imageUrl =
                 playlist.cover_path && playlist.cover_path.length > 0
                     ? convertFileSrc(playlist.cover_path)
@@ -97,9 +187,47 @@ function Library({ view, onMainViewSelected, onPlay }: Props) {
                         mainViewType: 'playlist',
                         id: playlist.playlist_id,
                     }),
+                contextMenuItems: [
+                    {
+                        label: 'Add to',
+                        subitems: [
+                            {
+                                label: 'Play queue',
+                                onClick: () =>
+                                    queuePlaylist(playlist.playlist_id),
+                            },
+                            {
+                                label: 'Play queue (next)',
+                                onClick: () =>
+                                    queuePlaylist(playlist.playlist_id, true),
+                            },
+                            {
+                                label: 'Playlist',
+                                subitems: playlists.map((menuPlaylist) => {
+                                    return {
+                                        label: menuPlaylist.name,
+                                        onClick: () =>
+                                            addPlaylistToPlaylist(
+                                                playlist.playlist_id,
+                                                menuPlaylist.playlist_id,
+                                            ),
+                                    } as ContextMenuItem;
+                                }),
+                            },
+                        ],
+                    },
+                    { label: 'Select cover' },
+                    {
+                        label: 'Edit information',
+                        onClick: () => {
+                            setShowPlaylistEditModal(true);
+                            setPlaylistEditModalData(playlist);
+                        },
+                    },
+                ],
             };
         });
-    }
+    };
 
     async function getTags(): Promise<ListItem[]> {
         const result = (await invoke('get_all_tags')) as Tag[];
@@ -122,17 +250,26 @@ function Library({ view, onMainViewSelected, onPlay }: Props) {
         return {
             albums: (
                 <>
+                    <PlaylistSelectModal
+                        modalState={playlistSelectModalState}
+                        onDone={(albumId, playlistId) => {
+                            setPlaylistSelectModalState({ show: false });
+                            if (!albumId || !playlistId) return;
+                            addAlbumToPlaylist(albumId, playlistId);
+                        }}
+                    />
                     <Filters setFilterState={setFilterState} key={0} />
                     <GridView
                         itemSource={getAlbums}
                         filterState={filterState}
                         playButton={true}
+                        showTutorial={true}
                         onPlayButtonClicked={(albumId: number) => {
                             backend
                                 .get_album_songs(albumId)
                                 .then((albumSongs) => {
                                     if (albumSongs.length > 0)
-                                        onPlay(albumSongs, 0);
+                                        playerContext.onPlay(albumSongs, 0);
                                 });
                         }}
                     />
@@ -152,8 +289,8 @@ function Library({ view, onMainViewSelected, onPlay }: Props) {
                 <>
                     <NamingModal
                         show={showPlaylistNamingModal}
-                        title="Provide a playlist name"
-                        inputPlaceholder="Playlist name"
+                        title="Create playlist"
+                        inputLabel="Playlist name"
                         onDone={(result: string | null) => {
                             setShowPlaylistNamingModal(false);
                             if (!result) return;
@@ -167,6 +304,30 @@ function Library({ view, onMainViewSelected, onPlay }: Props) {
                                     });
                             });
                             setChangeThis((old) => old + 1);
+                        }}
+                    />
+                    <FormModal<Playlist>
+                        title="Edit playlist"
+                        show={showPlaylistEditModal}
+                        fields={[
+                            {
+                                name: 'name',
+                                required: true,
+                                value: playlistEditModalData?.name,
+                            },
+                            {
+                                name: 'desc',
+                                value: playlistEditModalData?.desc,
+                            },
+                        ]}
+                        onDone={(playlist) => {
+                            setShowPlaylistEditModal(false);
+                            if (!playlist) return;
+                            playlist.playlist_id =
+                                playlistEditModalData?.playlist_id;
+                            backend
+                                .edit_playlist(playlist)
+                                .then(() => onMainViewUpdate());
                         }}
                     />
                     <Filters setFilterState={setFilterState} key={2} />
@@ -188,7 +349,7 @@ function Library({ view, onMainViewSelected, onPlay }: Props) {
                                 .get_playlist_songs(playlistId)
                                 .then((playlistSongs) => {
                                     if (playlistSongs.length > 0)
-                                        onPlay(playlistSongs, 0);
+                                        playerContext.onPlay(playlistSongs, 0);
                                 });
                         }}
                     />
@@ -229,7 +390,14 @@ function Library({ view, onMainViewSelected, onPlay }: Props) {
                 </>
             ),
         };
-    }, [filterState, changeThis, showTagNamingModal, showPlaylistNamingModal]);
+    }, [
+        filterState,
+        showTagNamingModal,
+        showPlaylistNamingModal,
+        showPlaylistEditModal,
+        forceRefresh,
+        playlistSelectModalState,
+    ]);
 
     return content[view] ?? <></>;
 }

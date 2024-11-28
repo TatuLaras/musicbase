@@ -1,4 +1,13 @@
+TODO:
+- Äänentoisto ja kaikki mitä se pitää sisällään
+- Jonon järjestely
+- Lisää seuraavaksi
+- Soittolistaan lisäys
+- Tag-systeemi
+- Shuffle-nappula soittimessa toimintaan
+- Puhdista kirjasto -ominaisuus / ei näytetä asioita mitkä ei ole levyllä
+- Takaisin-nappula
 
 IDEAT:
-- Eq, profiileja siihen ja per albumi / soittolista periaatteella voi olla eri profiileja
 - Suosituksia kirjaston perusteella
+- "viimeisin operaatio" päivämäärä soittolistalle (biisin lisäys tms.) jonka perusteella muutama viimeisin soittolista suoraan context menuun

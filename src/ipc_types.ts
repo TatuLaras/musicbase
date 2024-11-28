@@ -9,6 +9,8 @@ export interface Album {
     name: string;
     artist?: Artist;
     cover_path?: string;
+    cover_path_small?: string;
+    cover_path_tiny?: string;
     year?: number;
     total_tracks?: number;
     total_discs?: number;
@@ -32,6 +34,8 @@ export interface Playlist {
     name: string;
     desc: string;
     cover_path?: string;
+    cover_path_small?: string;
+    cover_path_tiny?: string;
     created?: string;
     tags: string[];
 }

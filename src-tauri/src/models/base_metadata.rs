@@ -121,6 +121,8 @@ pub struct Album {
     pub name: String,
     pub artist: Option<Artist>,
     pub cover_path: Option<String>,
+    pub cover_path_small: Option<String>,
+    pub cover_path_tiny: Option<String>,
     pub year: Option<i64>,
     pub total_tracks: Option<i64>,
     pub total_discs: Option<i64>,
@@ -135,9 +137,9 @@ impl Store for Album {
         }
 
         let query = "INSERT INTO album 
-        (name, artist_id, cover_path, year, total_tracks, total_discs) 
+        (name, artist_id, cover_path_tiny, cover_path_small, cover_path, year, total_tracks, total_discs) 
         VALUES 
-        (:name, :artist_id, :cover_path, :year, :total_tracks, :total_discs)
+        (:name, :artist_id, :cover_path_tiny, :cover_path_small, :cover_path, :year, :total_tracks, :total_discs)
         ";
 
         let mut statement = conn.prepare(query)?;
@@ -151,6 +153,14 @@ impl Store for Album {
         // Assumption: sqlite rust handles Option::None as NULL
         statement.bind((":artist_id", artist_id))?;
         statement.bind((":cover_path", utils::option_as_slice(&self.cover_path)))?;
+        statement.bind((
+            ":cover_path_small",
+            utils::option_as_slice(&self.cover_path_small),
+        ))?;
+        statement.bind((
+            ":cover_path_tiny",
+            utils::option_as_slice(&self.cover_path_tiny),
+        ))?;
         statement.bind((":year", self.year))?;
         statement.bind((":total_tracks", self.total_tracks))?;
         statement.bind((":total_discs", self.total_discs))?;
@@ -227,7 +237,8 @@ impl Retrieve for Album {
         let query = format!(
             "SELECT
 
-            album.album_id, album.name, album.artist_id, album.cover_path,
+            album.album_id, album.name, album.artist_id, 
+            album.cover_path, album.cover_path_small, album.cover_path_tiny,
             album.year, album.total_tracks, album.total_discs, ar.name AS artist_name
 
             FROM album
@@ -262,6 +273,8 @@ impl Retrieve for Album {
                     None
                 },
                 cover_path: statement.read::<Option<String>, _>("cover_path")?,
+                cover_path_small: statement.read::<Option<String>, _>("cover_path_small")?,
+                cover_path_tiny: statement.read::<Option<String>, _>("cover_path_tiny")?,
                 year: statement.read::<Option<i64>, _>("year")?,
                 total_tracks: statement.read::<Option<i64>, _>("total_tracks")?,
                 total_discs: statement.read::<Option<i64>, _>("total_discs")?,
@@ -387,7 +400,7 @@ impl Retrieve for Song {
             artist.name AS artist_name,
 
             album.name AS album_name, album.artist_id AS album_artist_id,
-            album.cover_path, album.year, album.total_tracks, album.total_discs,
+            album.cover_path, album.cover_path_small, album.cover_path_tiny, album.year, album.total_tracks, album.total_discs,
 
             album_artist.name AS album_artist_name
 
@@ -405,7 +418,9 @@ impl Retrieve for Song {
             LEFT JOIN playlist_song
             ON playlist_song.song_id = song.song_id
 
+
             WHERE {}
+            GROUP BY song.song_id
             ORDER BY {}
             ",
             condition.as_query(Condition::None),
@@ -455,6 +470,9 @@ impl Retrieve for Song {
                             None
                         },
                         cover_path: statement.read::<Option<String>, _>("cover_path")?,
+                        cover_path_small: statement
+                            .read::<Option<String>, _>("cover_path_small")?,
+                        cover_path_tiny: statement.read::<Option<String>, _>("cover_path_tiny")?,
                         year: statement.read::<Option<i64>, _>("year")?,
                         total_tracks: statement.read::<Option<i64>, _>("total_tracks")?,
                         total_discs: statement.read::<Option<i64>, _>("total_discs")?,

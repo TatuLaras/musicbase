@@ -3,8 +3,6 @@ import { Album, Directory, Playlist, Song, Tag } from './ipc_types';
 
 export namespace backend {
     export async function playSong(songId: number, queue: boolean) {
-        console.log('playSong command disabled');
-        return;
         await invoke('play_song', { songId, queue });
     }
 
@@ -32,6 +30,10 @@ export namespace backend {
         return (await invoke('get_playlist_songs', {
             playlistId,
         })) as Song[];
+    }
+
+    export async function get_all_playlists(): Promise<Playlist[]> {
+        return (await invoke('get_all_playlists')) as Playlist[];
     }
 
     export async function create_playlist(name: string): Promise<Playlist> {
@@ -69,7 +71,30 @@ export namespace backend {
             playlist,
         });
     }
+
     export async function create_tag(name: string): Promise<Tag> {
         return await invoke('create_tag', { name });
+    }
+
+    export async function add_songs_to_playlist(
+        songIds: number[],
+        playlistId: number,
+    ): Promise<Tag> {
+        return await invoke('add_songs_to_playlist', { songIds, playlistId });
+    }
+
+    export async function edit_playlist(playlist: Playlist) {
+        if (!playlist.name || !playlist.playlist_id) {
+            console.log('Invalid playlist in ipc_commands.ts:edit_playlist');
+            return;
+        }
+        if (!playlist.desc) playlist.desc = '';
+        if (!playlist.tags) playlist.tags = [];
+
+        return await invoke('edit_playlist', { playlist });
+    }
+
+    export async function scan() {
+        return await invoke('scan');
     }
 }

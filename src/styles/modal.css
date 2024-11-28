@@ -36,14 +36,11 @@
 .modal .title {
     font-weight: 500;
     font-size: 1.1rem;
-    margin-bottom: 1em;
+    margin-bottom: 1.4em;
 }
 
 .modal .text {
     opacity: 0.8;
-}
-
-.modal .content {
 }
 
 .modal .buttons {
@@ -60,4 +57,18 @@
 
 .modal input:focus {
     outline: 2px solid var(--color-accent-primary-sat);
+}
+
+.modal label {
+    margin-bottom: 0.4em;
+}
+
+.modal .field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1em;
+}
+
+.modal .field.nag input {
+    outline: 3px solid var(--color-accent-danger-sat);
 }

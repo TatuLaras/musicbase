@@ -1,9 +1,10 @@
-import { Howl, Howler } from 'howler';
 import {
     CSSProperties,
     Dispatch,
     SetStateAction,
+    createContext,
     useCallback,
+    useContext,
     useEffect,
     useRef,
     useState,
@@ -21,16 +22,26 @@ import {
     SkipPrevSolid,
     Xmark,
 } from 'iconoir-react';
-import { MainViewState } from '../main_view/MainView';
+import { MainViewContext } from '../main_view/MainView';
 import { Song } from '../../ipc_types';
 import { backend } from '../../ipc_commands';
 import { convertFileSrc } from '@tauri-apps/api/tauri';
 import ImagePlaceholder from '../ImagePlaceholder';
-import { songClass, wrap } from '../../utils';
-import FullScreenView from './FullScreenView';
+import { albumCover, songClass, wrap } from '../../utils';
+import FullscreenView from './FullScreenView';
+import SafeImage from '../SafeImage';
+
+export interface PlayerContextState {
+    onPlay: (queue: Song[], queuePos: number) => void;
+    onQueue: (songs: Song[], start?: boolean) => void;
+}
+
+export const PlayerContext = createContext<PlayerContextState>({
+    onPlay: () => {},
+    onQueue: () => {},
+});
 
 type Props = {
-    onMainViewSelected: (state: MainViewState) => void;
     queue: Song[];
     queuePos: number;
     setQueue: Dispatch<SetStateAction<Song[]>>;
@@ -40,7 +51,6 @@ type Props = {
 };
 
 export default function Player({
-    onMainViewSelected,
     queue,
     setQueue,
     queuePos,
@@ -48,6 +58,8 @@ export default function Player({
     shouldReset,
     setShouldReset,
 }: Props) {
+    const onMainViewSelected = useContext(MainViewContext).onMainViewSelected;
+
     const [songStartTime, setSongStartTime] = useState(0);
     const [totalTime, setTotalTime] = useState(0);
     const [currentSong, setCurrentSong] = useState<Song | null>(null);
@@ -159,12 +171,14 @@ export default function Player({
     return (
         <>
             {currentSong && (
-                <FullScreenView
+                <FullscreenView
                     song={currentSong}
                     fullscreen={fullscreen}
                     setFullscreen={setFullscreen}
                     queue={queue}
                     queuePos={queuePos}
+                    totalTime={totalTime}
+                    elapsedTime={time}
                 />
             )}
             <div className={`queue-panel ${enableQueuePanel ? 'enable' : ''}`}>
@@ -181,20 +195,15 @@ export default function Player({
                             }
                             key={i}
                         >
-                            <div
-                                className="cover"
-                                style={
-                                    {
-                                        '--img': `url(${convertFileSrc(song.album?.cover_path ?? '')})`,
-                                    } as CSSProperties
-                                }
+                            <SafeImage
+                                src={albumCover(song.album, 'tiny')}
                             >
                                 <div className="icon">
                                     <div className="inner">
                                         <PlaySolid />
                                     </div>
                                 </div>
-                            </div>
+                            </SafeImage>
                             <div className="info">
                                 <div className="name">{song.name}</div>
                                 <div className="artist">
@@ -316,6 +325,7 @@ export default function Player({
                         onClick={() => {
                             onMainViewSelected({ mainViewType: 'settings' });
                         }}
+                        className="exempt"
                     >
                         <Settings />
                     </button>

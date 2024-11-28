@@ -48,6 +48,12 @@
     opacity: 0.6;
 }
 
+.player.disabled .options button:not(.exempt),
+.player.disabled .options button:not(.exempt):hover {
+    opacity: 0.6;
+    cursor: default;
+}
+
 .player .options button:hover,
 .player .controls .buttons button:hover {
     opacity: 0.8;
@@ -230,8 +236,22 @@
     bottom: 0;
     background-color: var(--color-bg-very-dark);
     z-index: 3;
-    transform: translateX(50em);
-    transition: transform 0.2s ease-out;
+    transform: translateX(30em);
+    transition: transform 0.2s ease-in-out;
+}
+
+.queue-panel .safe-image {
+    height: 3em;
+    aspect-ratio: 1;
+    position: relative;
+}
+
+.queue-panel .safe-image > * {
+    border-radius: 0.125rem;
+}
+
+.queue-panel .safe-image .img-placeholder {
+    font-size: 1.1rem;
 }
 
 .queue-panel.enable {
@@ -256,16 +276,6 @@
     gap: 1em;
     padding: 0.7em 3em 0.7em 1.2em;
     cursor: pointer;
-    position: relative;
-}
-
-.queue-panel .song .cover {
-    background-image: var(--img);
-    background-size: cover;
-    background-color: red;
-    height: 3em;
-    aspect-ratio: 1;
-    border-radius: 0.125rem;
     position: relative;
 }
 
@@ -361,6 +371,6 @@
     }
 }
 
-.queue-panel .song.current .cover {
-    animation: bop 4s ease-in infinite;
+.queue-panel .song.current .safe-image {
+    animation: bop 4s ease-in-out infinite;
 }

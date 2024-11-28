@@ -1,26 +1,37 @@
-//  TODO:
+use std::{
+    io::{Read, Write},
+    net::Shutdown,
+    os::unix::net::UnixStream,
+    process::Command,
+};
 
-// pub fn get_player() -> Player {
-//     Player::new(None).unwrap()
-// }
-
-// Empties the queue and plays the sound file at path, from the same position.
-// Used in situations where we need to get rid of additional queued up items
-// in the sink due to the next song in queue changing
-pub fn replace_with(path: &str) {
-    todo!();
-}
-
-pub fn seek_to(millisecs: u64) {
-    todo!();
+pub fn start_mpv_process() -> Result<(), ()> {
+    Command::new("mpv")
+        .arg("--no-audio-display")
+        .arg("--idle")
+        // .arg("--terminal=no")
+        .arg("--input-ipc-server=/tmp/mpvsocket")
+        .spawn()
+        .unwrap();
+    Ok(())
 }
 
 // Plays file at path using the default audio device.
 // If parameter queue is true, the file will be added to a queue to be played gaplessly.
 pub fn play_file(path: &str, queue: bool) {
-    todo!();
+    let command = format!(
+        "{{ \"command\": [\"loadfile\", \"{}\", \"append-play\"] }}\n",
+        path
+    );
+    let result = send_command(command);
+    println!("result: {}", result);
 }
 
-// pub fn get_sink_pos() -> Duration {
-//     todo!();
-// }
+fn send_command(command: String) -> String {
+    let mut unix_stream = UnixStream::connect("/tmp/mpvsocket").unwrap();
+    unix_stream.write(command.as_bytes()).unwrap();
+    unix_stream.shutdown(Shutdown::Write).unwrap();
+    let mut response = String::new();
+    unix_stream.read_to_string(&mut response).unwrap();
+    response
+}

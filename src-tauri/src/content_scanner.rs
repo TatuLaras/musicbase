@@ -93,6 +93,8 @@ fn parse_and_save_metadata(
             album_id: None,
             name: name.into(),
             cover_path: None,
+            cover_path_small: None,
+            cover_path_tiny: None,
             year: tag.year().option_into(),
             total_tracks: tag.total_tracks().option_into(),
             total_discs: tag.total_discs().option_into(),
@@ -122,7 +124,11 @@ fn parse_and_save_metadata(
     if let Some(album) = &mut song.album {
         if !db.exists(album)? {
             if let Some(image) = tag.album_cover() {
-                album.cover_path = save_cover(
+                (
+                    album.cover_path,
+                    album.cover_path_small,
+                    album.cover_path_tiny,
+                ) = save_cover(
                     image.data,
                     mime_type_to_extension(image.mime_type),
                     image_cache_dir,

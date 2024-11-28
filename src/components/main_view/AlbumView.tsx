@@ -1,11 +1,15 @@
-import { CSSProperties, useEffect, useState } from 'react';
-import { Artist, Song } from '../../ipc_types';
+import { CSSProperties, useContext, useEffect, useState } from 'react';
+import { Album, Artist, Playlist, Song } from '../../ipc_types';
 import ImagePlaceholder from '../ImagePlaceholder';
-import { MoreHoriz, PlaySolid, Shuffle } from 'iconoir-react';
+import { PlaySolid, Shuffle } from 'iconoir-react';
 import Button from '../Button';
-import { capitalize, formatTime } from '../../utils';
+import { capitalize, formatTime, shuffleArray } from '../../utils';
 import { backend } from '../../ipc_commands';
 import { convertFileSrc } from '@tauri-apps/api/tauri';
+import { PlayerContext } from '../player/Player';
+import { ContextMenuCallbackContext, ContextMenuItem } from '../ContextMenu';
+import FormModal from '../FormModal';
+import { MainViewContext } from './MainView';
 
 export interface AlbumViewData {
     type: 'album' | 'playlist';
@@ -19,20 +23,59 @@ export interface AlbumViewData {
 type Props = {
     id: number;
     isPlaylist?: boolean;
-    onPlay: (queue: Song[], queuePos: number) => void;
-    onQueue: (songs: Song[], start: boolean) => void;
 };
 
-export default function AlbumView({
-    id,
-    onPlay,
-    onQueue,
-    isPlaylist = false,
-}: Props) {
+export default function AlbumView({ id, isPlaylist = false }: Props) {
+    const openContextMenu = useContext(ContextMenuCallbackContext);
+    const playerContext = useContext(PlayerContext);
+    const mainViewContext = useContext(MainViewContext);
+    const onMainViewUpdate = mainViewContext.onMainViewUpdate;
+
     const [viewAlbumArt, setViewAlbumArt] = useState(false);
     const [viewData, setViewData] = useState<AlbumViewData | null>(null);
 
+    const [showPlaylistEditModal, setShowPlaylistEditModal] = useState(false);
+    const [playlistEditModalData, setPlaylistEditModalData] =
+        useState<Playlist | null>(null);
+
     useEffect(getData, [id, isPlaylist]);
+
+    const topPortionContextMenu: ContextMenuItem[] = [
+        {
+            label: 'Add to',
+            subitems: [
+                {
+                    label: 'Play queue',
+                    onClick: () =>
+                        viewData?.songs &&
+                        playerContext.onQueue(viewData?.songs),
+                },
+                {
+                    label: 'Play queue (next)',
+                    onClick: () =>
+                        viewData?.songs &&
+                        playerContext.onQueue(viewData?.songs, true),
+                },
+                {
+                    label: 'Playlist',
+                },
+            ],
+        },
+        { label: 'Select cover', onClick: editCover },
+    ];
+
+    //  NOTE: Only playlists can be edited. This app is not a tag editor.
+    if (isPlaylist)
+        topPortionContextMenu.push({
+            label: 'Edit information',
+            onClick: () => {
+                backend.get_playlist(id).then((playlist) => {
+                    if (!playlist) return;
+                    setShowPlaylistEditModal(true);
+                    setPlaylistEditModalData(playlist);
+                });
+            },
+        });
 
     function getData() {
         if (isPlaylist) {
@@ -74,9 +117,13 @@ export default function AlbumView({
     }
 
     // Construct queue from the clicked song until the end of the album
-    function play(index: number) {
-        if (viewData?.songs && viewData.songs.length > 0)
-            onPlay(viewData.songs, index);
+    function play(index: number, shuffle: boolean = false) {
+        if (!viewData?.songs || viewData.songs.length == 0) return;
+
+        let songs = [...viewData.songs];
+        if (shuffle) shuffleArray(songs);
+
+        playerContext.onPlay(songs, index);
     }
 
     async function editCover() {
@@ -98,7 +145,16 @@ export default function AlbumView({
                     />
                 )}
             </div>
-            <div className="top-portion">
+            <div
+                className="top-portion"
+                onContextMenu={(e) =>
+                    openContextMenu({
+                        items: topPortionContextMenu,
+                        mousePosX: e.clientX,
+                        mousePosY: e.clientY,
+                    })
+                }
+            >
                 {viewData.cover_path ? (
                     <div
                         className="cover"
@@ -108,7 +164,6 @@ export default function AlbumView({
                             } as CSSProperties
                         }
                         onClick={() => {
-                            console.log('cover click');
                             setViewAlbumArt(true);
                         }}
                     ></div>
@@ -128,28 +183,30 @@ export default function AlbumView({
                     </div>
                 </div>
             </div>
-            <div className="button-row">
-                <div className="start">
-                    {viewData?.songs && viewData.songs.length > 0 && (
-                        <>
-                            <Button
-                                primary={true}
-                                text="Play"
-                                onClick={() => play(0)}
-                            >
-                                <PlaySolid />
-                            </Button>
-                            <Button text="Shuffle" onClick={() => play(0)}>
-                                <Shuffle />
-                            </Button>
-                        </>
-                    )}
-                </div>
-                <div className="end">
-                    <button className="icon-btn">
-                        <MoreHoriz />
-                    </button>
-                </div>
+            <div
+                className="button-row"
+                onContextMenu={(e) =>
+                    openContextMenu({
+                        items: topPortionContextMenu,
+                        mousePosX: e.clientX,
+                        mousePosY: e.clientY,
+                    })
+                }
+            >
+                {viewData?.songs && viewData.songs.length > 0 && (
+                    <>
+                        <Button
+                            primary={true}
+                            text="Play"
+                            onClick={() => play(0)}
+                        >
+                            <PlaySolid />
+                        </Button>
+                        <Button text="Shuffle" onClick={() => play(0, true)}>
+                            <Shuffle />
+                        </Button>
+                    </>
+                )}
             </div>
             <div className="song-list">
                 <div className="header">
@@ -161,8 +218,38 @@ export default function AlbumView({
                 {viewData.songs.map((song, i) => (
                     <div
                         className="song-item"
-                        key={song.song_id}
+                        key={i}
                         onClick={() => play(i)}
+                        onContextMenu={(e) => {
+                            openContextMenu({
+                                items: [
+                                    {
+                                        label: 'Add to',
+                                        subitems: [
+                                            {
+                                                label: 'Play queue',
+                                                onClick: () =>
+                                                    playerContext.onQueue([
+                                                        song,
+                                                    ]),
+                                            },
+                                            {
+                                                label: 'Play queue (next)',
+                                                onClick: () =>
+                                                    playerContext.onQueue(
+                                                        [song],
+                                                        true,
+                                                    ),
+                                            },
+                                            { label: 'Playlist' },
+                                        ],
+                                    },
+                                    { label: 'Edit information' },
+                                ],
+                                mousePosX: e.clientX,
+                                mousePosY: e.clientY,
+                            });
+                        }}
                     >
                         <div className="number">
                             <div className="n">{i + 1}</div>
@@ -181,6 +268,32 @@ export default function AlbumView({
                     </div>
                 ))}
             </div>
+            {isPlaylist ? (
+                <FormModal<Playlist>
+                    title="Edit playlist"
+                    show={showPlaylistEditModal}
+                    fields={[
+                        {
+                            name: 'name',
+                            required: true,
+                            value: playlistEditModalData?.name,
+                        },
+                        {
+                            name: 'desc',
+                            value: playlistEditModalData?.desc,
+                        },
+                    ]}
+                    onDone={(playlist) => {
+                        setShowPlaylistEditModal(false);
+                        if (!playlist) return;
+                        playlist.playlist_id =
+                            playlistEditModalData?.playlist_id;
+                        backend
+                            .edit_playlist(playlist)
+                            .then(() => onMainViewUpdate());
+                    }}
+                />
+            ) : null}
         </div>
     ) : null;
 }

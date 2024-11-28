@@ -10,14 +10,18 @@ interface Props {
     song: Song;
     queue: Song[];
     queuePos: number;
+    totalTime: number;
+    elapsedTime: number;
 }
 
-export default function FullScreenView({
+export default function FullscreenView({
     fullscreen,
     setFullscreen,
     song,
     queue,
     queuePos,
+    totalTime,
+    elapsedTime,
 }: Props) {
     const img = {
         '--img': `url(${convertFileSrc(song.album?.cover_path ?? '')})`,
@@ -28,13 +32,19 @@ export default function FullScreenView({
         [queue, queuePos],
     );
 
+    const progress = `${Math.min(elapsedTime / totalTime, 1) * 100}%`;
+
     return (
-        <div className={fullscreen ? 'fullscreen' : ''}>
+        <div
+            className={fullscreen ? 'fullscreen' : ''}
+            style={{ '--progress': progress } as CSSProperties}
+        >
             <div className="full-screen-bg" style={img}></div>
             <div
                 className={`full-screen-view ${fullscreen ? 'enabled' : ''}`}
                 style={img}
             >
+                <div className="progress"></div>
                 <button
                     className="icon-btn"
                     onClick={() => setFullscreen(false)}
@@ -56,6 +66,11 @@ export default function FullScreenView({
                             <div
                                 className={`song ${songClass(i, queuePos)} i-${remainingSongs() <= 5 ? 'p' : queueSlice.length - i - 1}`}
                                 key={i}
+                                style={
+                                    {
+                                        '--img': `url(${convertFileSrc(song.album?.cover_path ?? '')})`,
+                                    } as CSSProperties
+                                }
                             >
                                 <div className="cover"></div>
                                 <div className="info">

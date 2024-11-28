@@ -691,6 +691,8 @@ fn playlist_song_exists() {
                 playlist_song_id: None,
                 song_id: song.song_id.unwrap(),
                 playlist_id: playlist.playlist_id.unwrap(),
+                added: None,
+                ordering: 0,
             };
 
             db.insert(&mut playlist_song).unwrap();
@@ -700,6 +702,8 @@ fn playlist_song_exists() {
                 playlist_song_id: None,
                 song_id: playlist_song.song_id,
                 playlist_id: playlist_song.playlist_id,
+                added: None,
+                ordering: 0,
             };
 
             assert!(db.exists(&mut playlist_song).expect("Exists check"));

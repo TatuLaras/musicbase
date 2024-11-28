@@ -1,16 +1,22 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{fs, sync::Mutex, thread};
+use std::{
+    fs,
+    io::{Read, Write},
+    os::unix::net::UnixListener,
+    sync::Mutex,
+    thread,
+};
 
 use musicbase::{
-    audio_playback::{play_file, replace_with, seek_to},
+    audio_playback::{play_file, start_mpv_process},
     content_scanner::scan_for_new_content,
-    database::{update_field, ConnectionWrapper},
+    database::{get_ordering_offset, update_cover, update_playlist, ConnectionWrapper},
     images::save_cover,
     models::{
         base_metadata::{Album, Artist, Song},
-        user_generated::{Directory, Playlist, Tag},
+        user_generated::{Directory, Playlist, PlaylistSong, Tag},
         Retrieve, Store, StoreFull,
     },
     param::{self, eq, Order},
@@ -134,8 +140,7 @@ async fn select_cover(
         .add_filter(
             "filter",
             &[
-                "jpg", "jpeg", "png", "gif", "bmp", "svg", "JPG", "JPEG", "PNG", "GIF", "BMP",
-                "SVG",
+                "jpg", "jpeg", "png", "gif", "bmp", "JPG", "JPEG", "PNG", "GIF", "BMP",
             ],
         )
         .set_title("Select cover")
@@ -150,20 +155,24 @@ async fn select_cover(
     let Ok(image_data) = fs::read(path) else { return Err(()) };
 
     // Save image
-    let Some(cover_path) = save_cover(&image_data, &extension, data_dir) else { return Err(()) };
+    let (cover_path, cover_path_small, cover_path_tiny) =
+        save_cover(&image_data, &extension, data_dir);
+    let Some(cover_path) = cover_path else { return Err(()) };
+    let Some(cover_path_small) = cover_path_small else { return Err(()) };
+    let Some(cover_path_tiny) = cover_path_tiny else { return Err(()) };
 
     // Insert into db
-    if let Err(err) = update_field(
+    if let Err(err) = update_cover(
         &db,
-        if playlist { "playlist" } else { "album" },
-        "cover_path",
-        &cover_path[..],
-        if playlist { "playlist_id" } else { "album_id" },
         id,
+        playlist,
+        cover_path,
+        cover_path_small,
+        cover_path_tiny,
     ) {
-        println!("Error in main::select_cover, {}", err);
-        return Err(());
+        println!("Error in select_cover, {}", err);
     }
+
     Ok(())
 }
 
@@ -187,30 +196,7 @@ fn play_song(db: State<'_, Mutex<ConnectionWrapper>>, song_id: i64, queue: bool)
         &song_id.to_string()[..],
     );
     let Some(song) = song else { return; };
-    thread::spawn(move || {
-        play_file(&song.file_path[..], queue);
-    });
-}
-
-#[tauri::command]
-fn replace_song(db: State<'_, Mutex<ConnectionWrapper>>, song_id: i64) {
-    let song = get_one_by::<Song>(
-        &db.lock().unwrap(),
-        "song.song_id",
-        &song_id.to_string()[..],
-    );
-    let Some(song) = song else { return; };
-
-    unsafe {
-        replace_with(&song.file_path[..]);
-    }
-}
-
-#[tauri::command]
-fn seek(millisecs: u64) {
-    unsafe {
-        seek_to(millisecs);
-    }
+    play_file(&song.file_path[..], queue);
 }
 
 #[tauri::command]
@@ -257,7 +243,7 @@ fn get_playlist_songs(db: State<'_, Mutex<ConnectionWrapper>>, playlist_id: i64)
         &db.lock().unwrap(),
         "playlist_song.playlist_id",
         &playlist_id.to_string()[..],
-        param::asc("song.disc, song.track"),
+        param::asc("playlist_song.ordering"),
     )
 }
 
@@ -289,30 +275,141 @@ fn create_playlist(name: String, db: State<'_, Mutex<ConnectionWrapper>>) -> Opt
 }
 
 #[tauri::command]
-fn scan(app_handle: AppHandle, db: State<'_, Mutex<ConnectionWrapper>>) {
-    let db = db.lock().unwrap();
-
-    let Some(data_dir) = app_handle.path_resolver().app_data_dir() else { return; };
-    let Some(data_dir) = data_dir.to_str() else { return; };
-
-    let res = db.get_all::<Directory>(Order::Default);
-    let directories = match res {
+fn add_songs_to_playlist(
+    song_ids: Vec<i64>,
+    playlist_id: i64,
+    db: State<'_, Mutex<ConnectionWrapper>>,
+) -> Vec<PlaylistSong> {
+    let mut playlist_songs: Vec<PlaylistSong> = Vec::new();
+    let Ok(db) = db.lock() else { return playlist_songs };
+    let result = get_ordering_offset(&db, playlist_id);
+    let order_offset = match result {
         Ok(v) => v,
         Err(err) => {
-            println!("{}", err);
-            return;
+            println!(
+                "Error in main::add_songs_to_playlist, get_max_playlist_order: {}",
+                err
+            );
+            0
         }
     };
 
-    for directory in directories {
-        println!("Scanning {}", directory.path);
-        if let Err(err) = scan_for_new_content(&directory.path, &db, data_dir) {
-            println!(
-                "Error in command scan: {}",
-                err.message.unwrap_or("".into())
-            );
-        }
+    for (i, song_id) in song_ids.into_iter().enumerate() {
+        let mut playlist_song = PlaylistSong {
+            playlist_song_id: None,
+            added: None,
+            song_id,
+            playlist_id,
+            ordering: order_offset + (i as i64),
+        };
+
+        let result = insert::<PlaylistSong>(&db, &mut playlist_song);
+        if let Ok(_) = result {
+            playlist_songs.push(playlist_song);
+        };
     }
+    playlist_songs
+}
+
+//  TODO: use the tauri async commands instead of this crap
+#[tauri::command]
+fn scan(app_handle: AppHandle) {
+    thread::spawn(move || {
+        let db = get_db();
+
+        let Some(data_dir) = app_handle.path_resolver().app_data_dir() else { return; };
+        let Some(data_dir) = data_dir.to_str() else { return; };
+
+        let res = db.get_all::<Directory>(Order::Default);
+        let directories = match res {
+            Ok(v) => v,
+            Err(err) => {
+                println!("{}", err);
+                return;
+            }
+        };
+
+        for directory in directories {
+            println!("Scanning {}", directory.path);
+            if let Err(err) = scan_for_new_content(&directory.path, &db, data_dir) {
+                println!(
+                    "Error in command scan: {}",
+                    err.message.unwrap_or("".into())
+                );
+            }
+        }
+
+        app_handle
+            .emit_all::<Option<()>>("scan_done", None)
+            .unwrap();
+    });
+}
+
+#[tauri::command]
+fn edit_playlist(playlist: Playlist, db: State<'_, Mutex<ConnectionWrapper>>) {
+    let Ok(db) = db.lock() else { return };
+    if let Err(err) = update_playlist(&db, playlist) {
+        println!("Error in command edit_playlist, {}", err);
+    };
+}
+
+// Initializes a Unix domain socket listener to be used by the musicbase web server
+// Basically allows us to send arbitrary tauri events to the frontend from an outside process
+#[tauri::command]
+fn init_ipc_socket(app_handle: AppHandle, state: State<Mutex<SocketListenerState>>) {
+    let Ok(mut state) = state.lock() else { return };
+
+    if state.running {
+        return;
+    }
+
+    let socket = "/tmp/musicbasetatularassocket";
+    if let Err(_) = fs::remove_file(&socket) {
+        return;
+    };
+    let Ok(listener) = UnixListener::bind(socket) else { return };
+
+    // Simple protocol:
+    // kind;payload
+    thread::spawn(move || loop {
+        match listener.accept() {
+            Ok((mut socket, _addr)) => {
+                // Parse the received data
+
+                let mut payload = String::new();
+
+                if let Err(err) = socket.read_to_string(&mut payload) {
+                    println!("Error when receiving ipc socket connection: {}", err);
+                    continue;
+                }
+
+                let parts: Vec<_> = payload.split(";").collect();
+
+                if parts.len() != 2 {
+                    println!("Ignoring malformed ipc data");
+                    continue;
+                }
+
+                let kind = parts[0];
+                let payload = parts[1];
+
+                match kind {
+                    // Ask for the application data directory
+                    "datadir" => {
+                        let Some(data_dir) = app_handle.path_resolver().app_data_dir() else { continue };
+                        let Some(data_dir) = data_dir.to_str() else { continue };
+                        let _ = socket.write_all(data_dir.as_bytes());
+                    }
+                    // Just forward it as an tauri event to the frontend
+                    _ => app_handle.emit_all(kind, payload).unwrap(),
+                };
+            }
+            Err(e) => println!("accept function failed: {:?}", e),
+        }
+    });
+
+    // on success...
+    state.running = true;
 }
 
 fn get_db() -> ConnectionWrapper {
@@ -321,9 +418,14 @@ fn get_db() -> ConnectionWrapper {
     }
 }
 
+pub struct SocketListenerState {
+    running: bool,
+}
+
 fn main() {
     let db = get_db();
     let _ = db.create_schema();
+    start_mpv_process().unwrap();
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
@@ -337,8 +439,6 @@ fn main() {
             get_all_directories,
             select_directory,
             play_song,
-            replace_song,
-            seek,
             get_artist_albums,
             create_playlist,
             get_playlist,
@@ -346,9 +446,13 @@ fn main() {
             delete_directory,
             select_cover,
             create_tag,
+            add_songs_to_playlist,
+            edit_playlist,
+            init_ipc_socket,
         ])
         .setup(|app| {
             app.manage(Mutex::new(db));
+            app.manage(Mutex::new(SocketListenerState { running: false }));
             Ok(())
         })
         .run(tauri::generate_context!())

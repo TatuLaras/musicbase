@@ -1,0 +1,27 @@
+.modal.playlist-select .inner {
+    width: 100% !important;
+    height: calc(100% - 2em) !important;
+    max-width: 30em;
+    max-height: 36em;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal.playlist-select .grid-view {
+    flex: 1;
+}
+
+.modal.playlist-select .grid-view .item:hover {
+    background-color: var(--color-bg-dark-1);
+}
+
+.modal.playlist-select .search-bar {
+    outline-color: var(--color-bg-dark-1);
+}
+
+.modal.playlist-select .buttons {
+    margin-top: 1em;
+    flex: 1;
+    align-items: flex-end;
+}

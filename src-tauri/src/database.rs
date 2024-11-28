@@ -1,7 +1,7 @@
 use sqlite::{BindableWithIndex, Connection, State};
 
 use crate::{
-    models::{Retrieve, Store, StoreFull},
+    models::{user_generated::Playlist, Retrieve, Store, StoreFull},
     param::{Condition, Order},
 };
 
@@ -22,6 +22,8 @@ impl ConnectionWrapper {
             name TEXT NOT NULL,
             artist_id INTEGER,
             cover_path TEXT,
+            cover_path_small TEXT,
+            cover_path_tiny TEXT,
             year INTEGER,
             total_tracks INTEGER,
             total_discs INTEGER,
@@ -46,6 +48,8 @@ impl ConnectionWrapper {
             name TEXT NOT NULL,
             desc TEXT NOT NULL,
             cover_path TEXT,
+            cover_path_small TEXT,
+            cover_path_tiny TEXT,
             created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -54,7 +58,7 @@ impl ConnectionWrapper {
             song_id INTEGER NOT NULL,
             playlist_id INTEGER NOT NULL,
             added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            order INTEGER DEFAULT 0
+            ordering INTEGER DEFAULT 0
         );
 
         CREATE TABLE tag (
@@ -171,5 +175,57 @@ where
     statement.bind((1, field_value))?;
     statement.bind((2, id_value))?;
     execute_statement(&mut statement)?;
+    Ok(())
+}
+
+pub fn get_ordering_offset(db: &ConnectionWrapper, playlist_id: i64) -> Result<i64, sqlite::Error> {
+    let query = "SELECT MAX(ordering) AS res FROM playlist_song WHERE playlist_id = :playlist_id";
+    let mut statement = db.conn.prepare(query)?;
+    statement.bind((":playlist_id", playlist_id))?;
+
+    if let Ok(State::Row) = statement.next() {
+        return Ok(statement.read::<i64, _>("res")?);
+    }
+
+    Ok(0)
+}
+
+pub fn update_playlist(db: &ConnectionWrapper, playlist: Playlist) -> Result<(), sqlite::Error> {
+    let query = "UPDATE playlist SET name = :name, desc = :desc WHERE playlist_id = :id";
+    let mut statement = db.conn.prepare(query)?;
+
+    statement.bind((":name", &playlist.name[..]))?;
+    statement.bind((":desc", &playlist.desc[..]))?;
+    statement.bind((":id", playlist.playlist_id))?;
+    execute_statement(&mut statement)?;
+
+    Ok(())
+}
+
+pub fn update_cover(
+    db: &ConnectionWrapper,
+    id: i64,
+    playlist: bool,
+    cover_path: String,
+    cover_path_small: String,
+    cover_path_tiny: String,
+) -> Result<(), sqlite::Error> {
+    let query = format!(
+        "UPDATE {table} 
+    SET cover_path = :cover_path, 
+    cover_path_small = :cover_path_small,
+    cover_path_tiny = :cover_path_tiny
+    WHERE {id_name} = :id",
+        table = if playlist { "playlist" } else { "album" },
+        id_name = if playlist { "playlist_id" } else { "album_id" },
+    );
+    let mut statement = db.conn.prepare(query)?;
+    statement.bind((":id", id))?;
+    statement.bind((":cover_path", &cover_path[..]))?;
+    statement.bind((":cover_path_small", &cover_path_small[..]))?;
+    statement.bind((":cover_path_tiny", &cover_path_tiny[..]))?;
+
+    execute_statement(&mut statement)?;
+
     Ok(())
 }
